@@ -14,9 +14,9 @@ at them.
 
 | What | Where | When |
 |---|---|---|
-| Test gate: `./mvnw verify` on Java 11 | `.github/workflows/deploy.yml`, job `tests` | every push to `main`, before deploy |
+| Test gate: `./mvnw verify` on Java 25 | `.github/workflows/deploy.yml`, job `tests` | every push to `main`, before deploy |
 | Smoke gate: the Docker image against a fresh Postgres, `/health` version, every `examples/*.hurl` | `.github/workflows/deploy.yml`, job `smoke` | every push to `main`, before deploy |
 | Regression check: the working tree against `origin/main` (or any ref), ~90 requests side by side, prints every difference | `workflow/scripts/compare.sh [ref]` (uses `compare.py`) | before every push that shouldn't change behaviour (refactors, upgrades) |
 | Harness status: score, bleed, every check, deployed version vs `origin/main` | `python3 -I workflow/scripts/feedback.py [--watch 60]`, `--timeline <feature>/<check>` | after every push, and while the game runs |
 
-Run them with the production JDK: `JAVA_HOME=~/.jdks/ms-11.0.33 workflow/scripts/compare.sh`.
+Run them with the production JDK, 25 since the Spring Boot 4 upgrade: `JAVA_HOME=$(/usr/libexec/java_home -v 25) workflow/scripts/compare.sh`.

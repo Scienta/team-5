@@ -6,7 +6,7 @@ the claim log (REVIEW.md section 3).
 - [ ] Our spec `workflow/specs/<slug>.md` covers every rule of the feature request, each with an id.
 - [ ] Every open decision is marked **(our guess)**, and a person has seen the list. Asked the product owner about
       the ones that matter (or decided consciously not to).
-- [ ] A test per rule id, green on Java 11. Concurrency rules: the test fails with the lock removed.
+- [ ] A test per rule id, green on Java 25 (production). Concurrency rules: the test fails with the lock removed.
 - [ ] `examples/<slug>.hurl` covers the happy path and each error case, green locally.
 - [ ] `workflow/scripts/compare.sh` against `origin/main`: no differences except the feature's new fields.
 - [ ] Pushed; the deploy's `tests` and `smoke` gates green; `feedback.py` shows the new version live and every

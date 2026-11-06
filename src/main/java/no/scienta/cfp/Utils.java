@@ -42,12 +42,12 @@ public class Utils {
     }
 
     /**
-     * Epoch millis to a date-only java.sql.Date (UTC day).
+     * Epoch millis to the UTC day, "2026-11-04".
      */
-    public static java.sql.Date toSqlDate(long millis) {
+    public static String utcDate(long millis) {
         SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
         f.setTimeZone(UTC);
-        return java.sql.Date.valueOf(f.format(new Date(millis)));
+        return f.format(new Date(millis));
     }
 
     /**
