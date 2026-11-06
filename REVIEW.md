@@ -95,8 +95,8 @@ workshop with 404 ("no such workshop"). The check accepted the 409 and failed th
 sentence as one rule. **Why we missed it:** we saw the risk (the reviewer agent ranked it first, and the harness's
 traffic showed it probing an accepted presentation), but the traffic shows our answers, not its expectations, and we
 claimed on a guess we couldn't verify. **What we changed:** a rule in `.claude/rules/spec-decisions.md` (conditions in
-one sentence get one answer; 404 only for ids that don't exist), and the fix in `d52afa3`. It cost about 1 point a
-tick until the deploy.
+one sentence get one answer; 404 only for ids that don't exist), and the fix in `d52afa3`. It cost 5 points (bleed
+−7.9 → −12.9) over the six ticks until the fix was live; 4/4 OK from tick 126.
 
 **Every deploy costs points, tick 47.** Right after our first deploy, 5 base checks failed once on
 `POST /speakers`. The log showed the new instance answering the harness's first burst in 2.8–4.7 s: the platform's

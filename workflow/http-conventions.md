@@ -19,7 +19,7 @@ with it (a claimed check staying OK, or failing). Use it to decide the open ques
 | A duplicate (speaker email, registration email, any letter case) | **409** | speakers 4/4, workshop registration |
 | A state transition the rules don't allow (deciding on an accepted, rejected or withdrawn talk; withdrawing a rejected one) | **409**, nothing changes | acceptance 5/5 from the first tick |
 | A precondition not met (accepting with fewer than 2 reviewers) | **409** | acceptance 5/5 |
-| Something that exists but doesn't qualify for the operation (an accepted talk that isn't a workshop; a workshop that isn't accepted) | **409**, the same for every way of not qualifying | **404 failed** workshop-registration/check-2 at tick 119 (it accepted 409 for "not accepted" in the same run); 409 since `d52afa3` |
+| Something that exists but doesn't qualify for the operation (an accepted talk that isn't a workshop; a workshop that isn't accepted) | **409**, the same for every way of not qualifying | **404 failed** workshop-registration/check-2 at tick 119 (it accepted 409 for "not accepted" in the same run); **409 confirmed**: 4/4 OK from tick 126 (`d52afa3`) |
 | Someone who isn't allowed to (a speaker withdrawing another speaker's talk) | **403** | acceptance 5/5 |
 
 Rules of thumb that follow: **404 only for ids that don't exist**; a sentence in the request with several conditions
