@@ -83,6 +83,10 @@ or the platform.
   (Tomcat keep-alive: unlimited requests per connection, 75 s idle), live 124 s after the push at 14:54. No failure
   since, and the switchover cost nothing, but the harness dropped "2x" at the same time, so we can't tell whether
   it helped. Lesson: when a fix and an outside change land together, say "inconclusive", not "fixed".
+- **The load that reached us didn't double.** From our log: during "2x" (14:38–14:45) 456–664 requests a minute,
+  54–85 in the busiest second; after it (14:56–15:05, no failures) 438–614 a minute, 69–88 in the busiest second.
+  So the extra load never reached our container intact, which points the delays at the platform or the harness, not
+  at our capacity. Count what arrives before concluding you're overloaded.
 - **Decide on deploys by the bleed, not by the colour**: yellow `2x` markers on green checks cost nothing; only the
   bleed number tells you whether a deploy (which costs a switchover) is worth it.
 
