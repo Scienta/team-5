@@ -82,10 +82,15 @@ POST {{base_url}}/workshops/{{undecided}}/registrations
 { "name": "Too Early", "email": "early-{{newUuid}}@example.com" }
 HTTP 409
 
-# W3: only workshops (404 is our guess)
+# W3: only workshops: 409, like a workshop that isn't accepted (what the harness expects, tick 119)
 POST {{base_url}}/workshops/{{presentation}}/registrations
 { "name": "Wrong Room", "email": "wrong-{{newUuid}}@example.com" }
-HTTP 404
+HTTP 409
+
+GET {{base_url}}/workshops/{{presentation}}/registrations
+HTTP 200
+[Asserts]
+jsonpath "$" count == 0
 
 POST {{base_url}}/workshops/999999999/registrations
 { "name": "Nowhere", "email": "nowhere-{{newUuid}}@example.com" }
