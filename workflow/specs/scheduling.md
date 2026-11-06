@@ -37,7 +37,7 @@ Rooms `R1`, `R2`, `R3`. Slots, the same in every room:
 | P5 | … and takes the talk out again. A talk that's been taken out can go somewhere else. | `DELETE`: 204, the room and slot is empty again and the talk can be put anywhere. An empty room and slot: **404** (rules: removing what isn't there is not success; the harness `DELETE`s empty slots before its runs, so it expects to get past that). |
 | P6 | Only accepted talks go on the programme. | Talk not `ACCEPTED` (SUBMITTED, WAITLISTED, REJECTED, WITHDRAWN): **409**. |
 | P7 | A talk must fit its slot: a workshop needs the long slot, everything else fits anywhere. | `WORKSHOP` (120 min) only in `S4`, anywhere else **409** **(our guess: the talk conflicts with the slot; 409 like the other programme rules)**. Every other format fits every slot, `S4` included. |
-| P8 | One talk per room and slot. | The room and slot already has a talk: **409**. Also when it's the same talk again **(our guess: the request doesn't say "changes nothing" here, so it's an error)**. |
+| P8 | One talk per room and slot. | Another talk in an occupied room and slot: **409**. The same talk in the same place again changes nothing: **200** with the Entry (PUT is idempotent, and no rule is broken). We first guessed 409 for that; the harness's check-1 failed it at tick 136 (PUT, GET, the same PUT again). |
 | P9 | A talk is on the programme only once. To move a talk, take it out first. | The talk is already in another room or slot: **409**. |
 | P10 | Nobody speaks in two rooms at the same time: main speaker and co-speakers of talks in the same slot all differ. | The talk's main speaker or any co-speaker is a main speaker or co-speaker of a talk in the same slot in another room: **409**. Other slots don't matter. |
 | P11 | The rules are checked when a talk is put on the programme; if a talk changes afterwards, the programme stays. | Nothing re-checks the programme: a talk withdrawn after being put stays; co-speakers added later can clash. `GET` still shows it. |
@@ -47,7 +47,7 @@ Rooms `R1`, `R2`, `R3`. Slots, the same in every room:
 
 ## Order of checks
 
-`PUT`: room and slot exist (404) → body valid (400) → talk exists (400) → lock the slot → talk accepted (409) → fits
+`PUT`: room and slot exist (404) → body valid (400) → talk exists (400) → lock the slot → already exactly there (200, nothing changes) → talk accepted (409) → fits
 the slot (409) → room and slot empty (409) → talk not on the programme elsewhere (409) → no speaker in two rooms
 (409) → write → 200.
 
@@ -66,7 +66,7 @@ the slot (409) → room and slot empty (409) → talk not on the programme elsew
 2. `DELETE`: 204 with no body (our guess), or 200 with the Entry that was removed? And on an empty room and slot,
    404 (our guess) or 204?
 3. `GET` on an empty room and slot: 404 (our guess), or 200 with an Entry without `talkId`?
-4. Putting the same talk in the same room and slot again: 409 (our guess) or "nothing changes" (200)?
+4. ~~The same talk in the same room and slot again~~: answered by the harness at tick 136: 200, nothing changes.
 5. A workshop outside `S4`: 409 (our guess) or 400?
 6. ~~An unknown `talkId`~~: answered by the harness at tick 131: 400.
 

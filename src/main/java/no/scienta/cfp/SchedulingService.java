@@ -68,6 +68,11 @@ public class SchedulingService {
                     inSlot.put(inRoom, rs.wasNull() ? null : id); // wasNull() is about the column read last
                 }, slot);
 
+        // P8: the same talk in the same room and slot again changes nothing: 200 with the entry, as PUT is
+        // idempotent. 409 failed the harness's scheduling/check-1 at tick 136 (PUT, GET, the same PUT again).
+        if (Long.valueOf(talkId).equals(inSlot.get(room))) {
+            return entry(room, slot, talkId);
+        }
         if (!"ACCEPTED".equals(talk.status)) {
             throw conflict("only accepted talks go on the programme, this one is " + talk.status);
         }

@@ -149,10 +149,14 @@ class SchedulingTest {
     }
 
     @Test
-    void p8_theSameTalkAgainIs409_guess() throws Exception {
+    void p8_theSameTalkInTheSamePlaceAgainChangesNothing() throws Exception {
+        // the harness's scheduling/check-1 (tick 136): PUT, GET, the same PUT again expects 200, not 409
         long t = accepted(talk("PRESENTATION"));
         ok(schedule("R1/S2", t));
-        assertEquals(409, schedule("R1/S2", t).statusCode());
+        JsonNode again = ok(schedule("R1/S2", t));
+        assertEquals(t, again.get("talkId").asLong());
+        assertEquals("R1", again.get("room").asText());
+        assertEquals(t, ok(send(get("/programme/R1/S2"))).get("talkId").asLong());
     }
 
     @Test
