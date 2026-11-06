@@ -14,31 +14,91 @@
 
 ## 1. Workflow
 
-<!-- The steps you actually ran, from spec to claim. Link to the files in workflow/ and .claude/. -->
+What we actually do, from feature request to claim (one person driving, Claude Code doing most of the typing):
+
+1. **Read the feature request** from the harness (`/specs/<slug>/spec.md`) and check for published examples
+   (`/specs/<slug>/examples.hurl`; none so far for drip features).
+2. **Write our own spec** in `workflow/specs/<slug>.md`: every rule gets an id (C1, C2, …), and every decision the
+   request leaves open (status codes, edge cases, order of checks) is written down with *why*, marked as our guess.
+   Example: [`workflow/specs/co-speakers.md`](workflow/specs/co-speakers.md).
+3. **Tests per rule**, named after the ids (`CoSpeakersTest.c3_atMostTwo`, …), including concurrency. A concurrency
+   test is only trusted after we've seen it fail with the lock removed.
+4. **A Hurl example per feature** in `examples/`, which `examples/run.sh` and the deploy's smoke gate both run.
+5. **Regression check** against what's live: [`workflow/scripts/compare.sh`](workflow/scripts/compare.sh) builds
+   `origin/main` and the working tree, sends both the same ~90 requests and prints every difference.
+6. **Push = deploy**, but only through the gates in `.github/workflows/deploy.yml` (`tests`, then `smoke`).
+7. **Verify live**: [`workflow/scripts/feedback.py`](workflow/scripts/feedback.py) (deployed version, every check,
+   bleed) and the feature's Hurl file against our URL. Then a person claims.
+8. **After every claim or deploy**: watch `feedback.py`; for a FAULTY check, read its transcript and our request log
+   (`RequestLoggingFilter`), fix, and write it up in section 4.
+
+Rules for the agent: [`.claude/rules/`](.claude/rules/). Checklist before claiming:
+[`workflow/checklists/before-claim.md`](workflow/checklists/before-claim.md).
 
 ## 2. How we reviewed agent output
 
-<!-- Who or what reviewed the agents' work (people, review agents, tests, Hurl examples, gates in
-the deploy workflow), and against what (the spec, its examples, your own checks). -->
+- **Against the spec, rule by rule**: the agent maps every rule in the feature request to code and to a test, in a
+  table, before we accept the change (sections "Rules" in `workflow/specs/*.md`).
+- **Tests on the production Java** (11), with Testcontainers Postgres: 35 tests, run by us and by the `tests` gate.
+- **Mutation check for concurrency**: we removed `FOR UPDATE` from `CoSpeakerDao.lockTalk` and watched
+  `c12_concurrentAddsNeverMakeThree` fail (a talk got 4 co-speakers), then put it back.
+- **Side-by-side regression check** (`compare.sh`): for changes that must not change behaviour (the faster
+  `GET /talks`, the request logging) 89/89 responses identical; for co-speakers, identical except the new field.
+- **Smoke gate in CI**: the exact image against a fresh Postgres, `/health` version, every `examples/*.hurl`. It
+  caught its own first problem (Hurl wouldn't install on `ubuntu-latest`): no deploy, nothing lost.
+- **The harness**, after the claim: transcripts of FAULTY checks plus our request log. It caught what we didn't (4).
+- **A person** reads each diff and the agent's evidence before pushing, and asks "how do you know?" when the agent
+  says "safe".
 
 ## 3. Claim log
 
-<!-- A running entry per feature or change request, written when you claim or decide to skip it:
-claimed or skipped, at which tick, and the evidence you held before claiming. For example:
-
 | Feature | Claimed or skipped | Tick | Evidence before claiming |
 |---|---|---|---|
-| Speakers | claimed | 3 | examples.hurl green against our URL, plus our own edge-case tests for R3 and R7 |
--->
+| Speakers, Talk submissions, Ratings | claimed (base) | 0 | Given. Checked against the specs afterwards: compliant except a missing email format check, fixed in `9d6acef`; 15/15 checks OK throughout. |
+| Co-speakers | claimed | 84 | 10 rule tests (C1–C12) green on Java 11, concurrency test proven to fail without the lock, `examples/co-speakers.hurl` green locally, in the smoke gate and against our live URL, regression check identical apart from `coSpeakerIds`, 15/15 base checks still OK after the deploy. **check-1 went FAULTY at tick 85** (see 4), fixed in `97cb7d9`. |
+| Acceptance state machine | not yet | | |
+| Spring Boot 4 | not yet | | |
+| Workshop registration | not yet | | |
 
 ## 4. What the harness caught that we didn't
 
-<!-- Failures the harness found after you claimed (or after a deploy), and why your own review missed them. -->
+**Co-speakers, check-1, tick 85: removing the same co-speaker twice.** The feature request doesn't say what
+happens when you remove someone who isn't a co-speaker. We decided "200, nothing changes" (idempotent, by analogy
+with "adding someone who is already a co-speaker changes nothing"), wrote it in our spec as rule C10, and then wrote
+a test and a Hurl example *for our decision*. Everything was green, and the harness's check removed a co-speaker
+twice and failed us on the second `DELETE`: it expects an error (404). **Why we missed it:** our tests checked our
+own guess, not the business; nobody asked the product owner, and the analogy was ours, not the spec's ("changes
+nothing" was only promised for adding). **What we changed:** the rule in `.claude/rules/spec-decisions.md`: for
+anything the request doesn't say, use the conventional HTTP answer (a relation that doesn't exist is 404, also on
+`DELETE`), mark it as a guess in the spec, and put the guesses in front of a person, who asks the product owner
+before claiming.
+
+**Every deploy costs points, tick 47.** Right after our first deploy, 5 base checks failed once on
+`POST /speakers`. The log showed the new instance answering the harness's first burst in 2.8–4.7 s: the platform's
+small CPU made the JVM start in 38 s and the first requests slow. **Why we missed it:** locally it starts in 3 s.
+**What we changed:** JVM flags for start-up (C1 only, serial GC: 56 s → 25 s at 0.25 CPU in `docker --cpus`), a
+read-only warm-up after start (`WarmUp.java`), and we bundle changes into fewer deploys.
+
+**Ratings, check-3, tick 75: unexplained.** One FAULTY run on `PUT /talks/{id}/ratings/{reviewerId}`; our log shows
+correct answers (30 × 200, 2 × 400, 1 × 404, nothing slow), and the transcript was gone when we looked. It ran at
+12:41:59, a second before the minute changed (`ratedAtDisplay` has minutes), so possibly a clock-boundary flake.
+Lesson: read the transcript as soon as `feedback.py` shows FAULTY; it only keeps the latest faulty run.
 
 ## 5. Reusable artifacts
 
-<!-- What's worth taking to client work: agents, skills, prompts, spec templates, gates. Give the paths. -->
+- [`workflow/scripts/compare.sh`](workflow/scripts/compare.sh) + [`compare.py`](workflow/scripts/compare.py):
+  side-by-side regression check of two versions of an HTTP service, with ids, timestamps and test data masked and
+  `IGNORE_FIELDS` for intended additions. The one we'd take to every client refactor and framework upgrade.
+- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) jobs `tests` and `smoke`: deploy only an image
+  that has started against a real database and passed the examples.
+- [`workflow/scripts/feedback.py`](workflow/scripts/feedback.py): one command for "what's live, and is it green?".
+- [`workflow/specs/co-speakers.md`](workflow/specs/co-speakers.md): the spec format (rule ids, decisions with
+  reasons, order of checks, open questions), and [`workflow/checklists/before-claim.md`](workflow/checklists/before-claim.md).
+- `RequestLoggingFilter.java`: one line per request with the body and the error reason, the cheapest way to see
+  what an external checker sends.
 
 ## 6. One thing we'd do differently
 
-<!-- One thing, and why. -->
+Treat every decision the spec leaves open as a question, not an answer: list them before writing tests and get a
+person (or the product owner) to confirm them. The one feature we got wrong was green on all our own checks; the
+tests were faithful to a decision nobody had checked.
