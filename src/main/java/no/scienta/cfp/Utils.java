@@ -1,5 +1,7 @@
 package no.scienta.cfp;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -105,7 +107,14 @@ public class Utils {
     }
 
     /**
-     * Rounds a rating average to one decimal.
+     * A talk's average score as the Ratings spec shows it: one decimal, halves rounded up (4.25 -> 4.3).
+     */
+    public static double averageRating(long total, int count) {
+        return BigDecimal.valueOf(total).divide(BigDecimal.valueOf(count), 1, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    /**
+     * Rounds a rating average to one decimal, cutting off. Only /admin/stats uses it; talks use averageRating.
      */
     public static double roundRating(double avg) {
         return Math.floor(avg * 10) / 10.0;

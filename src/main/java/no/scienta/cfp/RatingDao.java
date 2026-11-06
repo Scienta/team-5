@@ -1,7 +1,5 @@
 package no.scienta.cfp;
 
-import java.util.Map;
-
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -21,13 +19,6 @@ public class RatingDao {
         jdbc.update("INSERT INTO rating (talk_id, reviewer_id, score, rated_at) VALUES (?, ?, ?, ?) "
                 + "ON CONFLICT (talk_id, reviewer_id) DO UPDATE SET score = excluded.score, rated_at = excluded.rated_at",
                 talkId, reviewerId, score, ratedAt);
-    }
-
-    /**
-     * Returns {cnt, total} for one talk.
-     */
-    public Map<String, Object> stats(long talkId) {
-        return jdbc.queryForMap("SELECT COUNT(*) AS cnt, COALESCE(SUM(score), 0) AS total FROM rating WHERE talk_id = ?", talkId);
     }
 
     // public double average(long talkId) {

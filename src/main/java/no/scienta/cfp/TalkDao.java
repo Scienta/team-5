@@ -11,7 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class TalkDao {
 
-    private static final String COLUMNS = "id, title, format, duration, level, status, speaker_id, submitted_at";
+    // Talks with their rating count and score total in one query (a LATERAL aggregate per talk, using the rating
+    // primary key), instead of one extra query per talk. GET /talks returns every talk, and the table grows all day.
+    private static final String SELECT = "SELECT t.id, t.title, t.format, t.duration, t.level, t.status, t.speaker_id, "
+            + "t.submitted_at, r.cnt, r.total FROM talk t "
+            + "CROSS JOIN LATERAL (SELECT COUNT(*) AS cnt, COALESCE(SUM(score), 0) AS total "
+            + "FROM rating WHERE rating.talk_id = t.id) r";
 
     private final JdbcTemplate jdbc;
 
@@ -27,6 +32,9 @@ public class TalkDao {
         long millis = rs.getLong("submitted_at");
         t.submittedAt = new Date(millis);
         t.submittedOn = Utils.toSqlDate(millis);
+        int count = rs.getInt("cnt");
+        t.ratingCount = count;
+        t.averageRating = count == 0 ? null : Utils.averageRating(rs.getLong("total"), count);
         return t;
     };
 
@@ -35,16 +43,16 @@ public class TalkDao {
     }
 
     public TalkDto findById(long id) {
-        List<TalkDto> list = jdbc.query("SELECT " + COLUMNS + " FROM talk WHERE id = ?", mapper, id);
+        List<TalkDto> list = jdbc.query(SELECT + " WHERE t.id = ?", mapper, id);
         return list.isEmpty() ? null : list.get(0);
     }
 
     public List<TalkDto> findBySpeaker(long speakerId) {
-        return jdbc.query("SELECT " + COLUMNS + " FROM talk WHERE speaker_id = ? ORDER BY id", mapper, speakerId);
+        return jdbc.query(SELECT + " WHERE t.speaker_id = ? ORDER BY t.id", mapper, speakerId);
     }
 
     public List<TalkDto> findAll() {
-        return jdbc.query("SELECT " + COLUMNS + " FROM talk ORDER BY id", mapper);
+        return jdbc.query(SELECT + " ORDER BY t.id", mapper);
     }
 
     public boolean exists(long id) {

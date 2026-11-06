@@ -7,6 +7,9 @@
 # was live before (which keeps serving) and the job fails, with the container's error_message and
 # its logs since the job started in the last step.
 #
+# team-5: the deploy job waits for two gates, `tests` (./mvnw verify on Java 11) and `smoke` (the Docker image
+# against a fresh Postgres, then examples/*.hurl). A red gate means no deploy; the live version keeps serving.
+#
 # You own this file. Add your own gates (tests, Hurl examples, review checks) as jobs that the
 # deploy job `needs`; they run on GitHub-hosted runners. If you break it, you lose your own ticks.
 #
@@ -28,7 +31,59 @@ permissions:
   contents: read
 
 jobs:
+  # Gate 1 (team-5): the whole test suite, on the production Java. Testcontainers uses the runner's Docker.
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "11"
+      - name: Cache ~/.m2
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: m2-${{ hashFiles('**/pom.xml', '.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: m2-
+      - name: Tests
+        run: ./mvnw -B verify
+
+  # Gate 2 (team-5): the exact image we'd deploy, started next to a Postgres, must pass /health and every
+  # Hurl file in examples/ (the published examples plus our own for the drip features).
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build the image
+        run: docker build --platform linux/amd64 --build-arg "GIT_SHA=$GITHUB_SHA" --tag cfp:smoke .
+      - name: Start Postgres and the image
+        run: |
+          docker network create smoke
+          docker run -d --name db --network smoke -e POSTGRES_DB=cfp -e POSTGRES_USER=cfp -e POSTGRES_PASSWORD=cfp postgres:16-alpine
+          docker run -d --name app --network smoke -p 8080:8080 \
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=cfp -e PGUSER=cfp -e PGPASSWORD=cfp -e PGSSLMODE=disable cfp:smoke
+          for i in $(seq 1 90); do
+            if curl -fsS localhost:8080/health; then echo; break; fi
+            sleep 2
+          done
+          curl -fsS localhost:8080/health | grep -q "\"version\":\"$GITHUB_SHA\"" || { docker logs app; exit 1; }
+      - name: Install Hurl
+        run: |
+          curl -fsSLO https://github.com/Orange-OpenSource/hurl/releases/download/8.1.0/hurl_8.1.0_amd64.deb
+          sudo apt-get install -y ./hurl_8.1.0_amd64.deb
+      - name: Hurl examples
+        run: examples/run.sh http://localhost:8080
+      - name: App logs
+        if: ${{ always() }}
+        run: docker logs app 2>&1 | tail -200
+
   deploy:
+    needs: [tests, smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -71,28 +126,3 @@ jobs:
           sleep 15 # Cockpit takes a few seconds to ingest the lines.
           echo "error_message: $(scw container container get "$SCW_CONTAINER_ID" -o json | jq -r '.error_message // "(none)"')" || true
           .github/fagdag/logs.sh --tail 200 --since "$ROLLOUT_STARTED_AT"
-
-  # The unit tests run after the deploy and are NOT a gate: the suite is thin and partly wrong.
-  # To make them one, move this job before deploy and add `needs: tests` to the deploy job.
-  tests:
-    needs: deploy
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "11"
-      - name: Cache ~/.m2
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.m2/repository
-            ~/.m2/wrapper
-          key: m2-${{ hashFiles('**/pom.xml', '.mvn/wrapper/maven-wrapper.properties') }}
-          restore-keys: m2-
-      - name: Unit tests
-        run: ./mvnw -B test
