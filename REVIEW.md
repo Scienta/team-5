@@ -162,6 +162,8 @@ debugging a one-off.
 - [`.claude/skills/drip-feature/SKILL.md`](.claude/skills/drip-feature/SKILL.md): the whole feature workflow as a
   Claude Code skill, and [`.claude/agents/spec-reviewer.md`](.claude/agents/spec-reviewer.md): a reviewer agent that
   reads the feature request and our code cold and lists where they disagree, before a person claims.
+- [`workflow/lessons.md`](workflow/lessons.md): what we learned about the game itself (drip features, change
+  requests, the feedback, deploys, the afternoon load), where the points went, and what we'd set up at 9 o'clock.
 - [`workflow/specs/TEMPLATE.md`](workflow/specs/TEMPLATE.md): the spec format, distilled from our first three
   specs and used for the last two (scheduling, export).
 - [`workflow/http-conventions.md`](workflow/http-conventions.md): which HTTP answer for which situation, each row
