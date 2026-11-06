@@ -49,7 +49,7 @@ The 4-minute showcase script: [`workflow/showcase.md`](workflow/showcase.md). Ru
 - **Against the spec, rule by rule**: the agent maps every rule in the feature request to code and to a test, in a
   table, before we accept the change (sections "Rules" in `workflow/specs/*.md`).
 - **Tests on the production Java** (25 since the Spring Boot 4 upgrade; 11 before), with Testcontainers Postgres:
-  88 tests (87 run, 1 disabled since before the game), run by us and by the `tests` gate. Without a local JDK 25
+  101 tests (100 run, 1 disabled since before the game), run by us and by the `tests` gate. Without a local JDK 25
   we run them in Docker with [`workflow/scripts/mvn25.sh`](workflow/scripts/mvn25.sh).
 - **Mutation check for every concurrency rule**: we remove the `FOR UPDATE` and watch the test fail, then put it
   back. Co-speakers: a talk got 4 co-speakers (max 2). Acceptance: 5 committee decisions "won" on one talk, and a
