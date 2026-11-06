@@ -144,7 +144,8 @@ public class ConferenceService {
 
         Long id = checkSubmissionLimit(form, duration);
         if (id == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "a speaker can submit at most 3 talks");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "a speaker can have at most " + TalkDao.MAX_TALKS + " talks in the running");
         }
         Map<String, Object> speaker = speakerDao.findById(form.speakerId);
         notifications.talkSubmitted((String) speaker.get("email"), form.title);
@@ -152,10 +153,11 @@ public class ConferenceService {
     }
 
     /**
-     * Checks that the speaker is below the limit of 3 talks.
+     * Inserts the talk only if the speaker is below the cap, counting in-the-running talks as main or co-speaker
+     * (submission cap change request). Returns null if the speaker is at the cap.
      */
     private Long checkSubmissionLimit(TalkForm form, int duration) {
-        return talkDao.insertIfBelow(3, form.title, form.format, duration, form.level, form.speakerId,
+        return talkDao.insertIfBelow(TalkDao.MAX_TALKS, form.title, form.format, duration, form.level, form.speakerId,
                 System.currentTimeMillis());
     }
 

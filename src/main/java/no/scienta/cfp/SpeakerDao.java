@@ -28,6 +28,14 @@ public class SpeakerDao {
         return n != null && n > 0;
     }
 
+    /**
+     * Locks the speaker row until the transaction ends and returns whether the speaker exists. Taken before counting a
+     * speaker's talks toward the cap, so concurrent submits and co-speaker adds for one speaker serialize (SC7).
+     */
+    public boolean lockExists(long id) {
+        return !jdbc.queryForList("SELECT id FROM speaker WHERE id = ? FOR UPDATE", Long.class, id).isEmpty();
+    }
+
     public boolean emailTaken(String email) {
         Integer n = jdbc.queryForObject("SELECT COUNT(*) FROM speaker WHERE lower(email) = lower(?)", Integer.class, email);
         return n != null && n > 0;

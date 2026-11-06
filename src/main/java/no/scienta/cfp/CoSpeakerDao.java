@@ -26,6 +26,11 @@ public class CoSpeakerDao {
         return main.isEmpty() ? null : main.get(0);
     }
 
+    /** The talk's status; the caller has locked the talk row with {@link #lockTalk}. */
+    public String status(long talkId) {
+        return jdbc.queryForObject("SELECT status FROM talk WHERE id = ?", String.class, talkId);
+    }
+
     public List<Long> coSpeakers(long talkId) {
         return jdbc.queryForList("SELECT speaker_id FROM talk_co_speaker WHERE talk_id = ? ORDER BY seq", Long.class,
                 talkId);

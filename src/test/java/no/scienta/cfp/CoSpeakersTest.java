@@ -123,21 +123,18 @@ class CoSpeakersTest {
         assertEquals(0, get("/talks?speakerId=" + co).size());
     }
 
+    // C9 was "co-speaking doesn't use up submissions". The submission cap change request (tick 180) reversed it:
+    // co-speaking now counts toward the cap. The thorough cap tests live in SubmissionCapTest (SC1-SC8); this just
+    // pins that a speaker at the cap can no longer be added as a co-speaker to an in-the-running talk.
     @Test
-    void c9_coSpeakingDoesntUseUpSubmissions() throws Exception {
+    void c9_coSpeakingNowCountsTowardTheCap() throws Exception {
         long busy = speaker();
         for (int i = 0; i < 3; i++) {
             talk(busy);
         }
-        assertEquals(409, send(post("/talks", talkJson(busy))).statusCode()); // at the limit
+        assertEquals(409, send(post("/talks", talkJson(busy))).statusCode()); // at the cap with their own talks
         long other = talk(speaker());
-        ok(put(other, busy)); // can still co-speak
-
-        long co = speaker();
-        ok(put(other, co));
-        for (int i = 0; i < 3; i++) {
-            talk(co); // co-speaking used none of their 3
-        }
+        assertEquals(409, put(other, busy).statusCode()); // and can no longer co-speak on an in-the-running talk
     }
 
     @Test
