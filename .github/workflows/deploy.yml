@@ -7,7 +7,7 @@
 # was live before (which keeps serving) and the job fails, with the container's error_message and
 # its logs since the job started in the last step.
 #
-# team-5: the deploy job waits for two gates, `tests` (./mvnw verify on Java 11) and `smoke` (the Docker image
+# team-5: the deploy job waits for two gates, `tests` (./mvnw verify on Java 25) and `smoke` (the Docker image
 # against a fresh Postgres, then examples/*.hurl). A red gate means no deploy; the live version keeps serving.
 #
 # You own this file. Add your own gates (tests, Hurl examples, review checks) as jobs that the
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "11"
+          java-version: "25"
       - name: Cache ~/.m2
         uses: actions/cache@v4
         with:
