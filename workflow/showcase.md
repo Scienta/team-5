@@ -1,7 +1,7 @@
 # Showcase script (17:00, 4 minutes, hard stop)
 
-Screen-share this repo. No slides, no harness screens. Before 17:00: pull, run
-`python3 -I workflow/scripts/feedback.py`, and fill in the numbers marked ⟨…⟩.
+Screen-share this repo. No slides, no harness screens. Final numbers (tick 218, when the harness stopped ticking)
+are filled in below.
 
 ## 0:00–1:00 Our workflow (REVIEW.md section 1)
 
@@ -26,7 +26,9 @@ Open `REVIEW.md` section 4, then section 3.
 - "So we changed the workflow: deploy first, read the harness's traffic against the new code, then claim. The
   three features claimed that way, acceptance, programme export and the ratings change request, were all green
   from their first tick."
-- Numbers: ⟨N⟩ features claimed, ⟨N/N⟩ checks OK, ⟨−X⟩ points bled in total, almost all of it on those guesses.
+- Numbers: all 11 released features claimed (3 base, 6 drip features, 2 change requests), every active check green
+  (43/43), 2 285 points: 2 336 earned, 51 bled. About 19 of the 51 were those guesses, about 25 the harness's
+  afternoon load phase ("2x"), the rest cold starts and two one-offs (`workflow/lessons.md`).
 
 ## 2:45–3:45 One artifact we'd reuse: `workflow/http-conventions.md`
 

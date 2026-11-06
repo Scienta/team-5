@@ -6,7 +6,7 @@ o'clock next time. The stories behind each point are in `REVIEW.md` section 4; t
 
 ## Where the points went
 
-About 51 points bled out of about 2 100 earned (tick 207):
+51.17 points bled out of 2 336.42 earned (final, tick 218):
 
 | Cause | Points | Avoidable? |
 |---|---|---|

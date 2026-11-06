@@ -81,9 +81,9 @@ The 4-minute showcase script: [`workflow/showcase.md`](workflow/showcase.md). Ru
 
 ## 3. Claim log
 
-**Result at tick 212 (frozen):** all 11 released features claimed (3 base, 6 drip features, 2 change requests), every
-active check green (43/43; 3 more retired by the change requests), score 2 165 earned against 51 bled. Where the bleed
-came from: `workflow/lessons.md`.
+**Final result at tick 218 (the harness stopped ticking):** all 11 released features claimed (3 base, 6 drip features,
+2 change requests), every active check green (43/43; 3 more retired by the change requests), score 2 285.25: 2 336.42
+earned, 51.17 bled. Where the bleed came from: `workflow/lessons.md`.
 
 | Feature | Claimed or skipped | Tick | Evidence before claiming |
 |---|---|---|---|
