@@ -163,6 +163,7 @@ jobs:
           ROLLOUT_URL: ${{ vars.TEAM_URL }}
           ROLLOUT_SHA: ${{ github.sha }}
           ROLLOUT_IMAGE: app
+          ROLLOUT_POLL_SECONDS: "2" # team-5: see the new version on /health sooner (rollout.sh's default is 5)
         run: .github/fagdag/rollout.sh
       # Only when the rollout failed: build errors are in the step above it. Image pull errors only
       # show up in error_message; a crash on start-up shows up in the logs.
