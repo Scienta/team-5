@@ -61,7 +61,7 @@ Rules for the agent: [`.claude/rules/`](.claude/rules/). Checklist before claimi
 |---|---|---|---|
 | Speakers, Talk submissions, Ratings | claimed (base) | 0 | Given. Checked against the specs afterwards: compliant except a missing email format check, fixed in `9d6acef`; 15/15 checks OK throughout. |
 | Co-speakers | claimed | 84 | 10 rule tests (C1–C12) green on Java 11, concurrency test proven to fail without the lock, `examples/co-speakers.hurl` green locally, in the smoke gate and against our live URL, regression check identical apart from `coSpeakerIds`, 15/15 base checks still OK after the deploy. **check-1 went FAULTY at tick 85** (see 4), fixed in `97cb7d9`. |
-| Acceptance state machine | not yet | | |
+| Acceptance state machine | claimed | 100 | Our spec with every guess marked (`workflow/specs/acceptance.md`, product-owner questions listed); 12 tests (A1–A12) green on Java 11; both concurrency tests seen to fail without the lock (5 "winners" on one talk); `examples/acceptance.hurl` green locally and live; regression check 89/89 identical; **the harness's own acceptance traffic read before claiming** (`harness-traffic.py`, 2 runs, ~70 requests, no 5xx, every sequence answered as the spec says: same reviewer twice still blocks accepting, 6 concurrent decisions have one winner, withdrawn is final). Not seen in its traffic: re-waitlisting and co-speaker withdrawal (our guesses). |
 | Spring Boot 4 | not yet | | |
 | Workshop registration | not yet | | |
 

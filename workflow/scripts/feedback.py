@@ -68,9 +68,11 @@ def report():
             lines.append(f"  {f['slug']:<14} unclaimed")
             continue
         ok = sum(c["status"] == "OK" for c in checks)
-        lines.append(f"  {f['slug']:<14} claimed@{f.get('claimedAtTick')}  {ok}/{len(checks)} OK")
+        pending = sum(c["status"] is None for c in checks)
+        lines.append(f"  {f['slug']:<14} claimed@{f.get('claimedAtTick')}  {ok}/{len(checks)} OK"
+                     + (f", {pending} not run yet" if pending else ""))
         for c in checks:
-            if c["status"] != "OK":
+            if c["status"] not in ("OK", None):
                 bad = True
                 lines.append(f"    {f['slug']}/{c['name']}: {c['status']}  reqs={c.get('reqs')}  notes={c.get('notes')}")
     return lines, bad
