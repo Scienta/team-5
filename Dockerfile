@@ -16,4 +16,6 @@ ENV PGSSLMODE=require
 ARG GIT_SHA=unknown
 ENV GIT_SHA=$GIT_SHA
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Start-up on the platform's small CPU: the C1 compiler only and the serial GC halve start-up (measured with
+# docker --cpus=0.25: 56 s -> 25 s) and the first requests' latency. Peak throughput isn't the bottleneck here.
+ENTRYPOINT ["java", "-XX:TieredStopAtLevel=1", "-XX:+UseSerialGC", "-jar", "/app/app.jar"]

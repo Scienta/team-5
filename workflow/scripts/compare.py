@@ -3,14 +3,17 @@ headers and normalised bodies (ids, timestamps and unique test data are masked).
 
     python3 -I workflow/scripts/compare.py http://localhost:8082 http://localhost:8081
 
-Usually run through compare.sh, which builds and starts both versions. Exit code 1 if anything differs.
+Usually run through compare.sh, which builds and starts both versions. IGNORE_FIELDS=a,b leaves fields a new feature
+adds on purpose out of the comparison (report them separately). Exit code 1 if anything differs.
 The two servers may share a database: every run uses its own unique emails and names.
 Covers the Speakers, Talk submissions and Ratings specs (happy paths and error cases). Add new features' requests
 at the end of script() once both versions have them.
 """
-import json, re, sys, urllib.request, urllib.error, uuid
+import json, os, re, sys, urllib.request, urllib.error, uuid
 
 OLD, NEW = sys.argv[1], sys.argv[2]
+# Fields a new feature adds on purpose, left out of the comparison: IGNORE_FIELDS=coSpeakerIds,other
+IGNORE = [f for f in os.environ.get("IGNORE_FIELDS", "").split(",") if f]
 
 
 def call(base, method, path, body=None, ctype="application/json"):
@@ -156,7 +159,20 @@ def script(base):
     return out, ids, tag
 
 
+def drop(value):
+    if isinstance(value, dict):
+        return {k: drop(v) for k, v in value.items() if k not in IGNORE}
+    if isinstance(value, list):
+        return [drop(v) for v in value]
+    return value
+
+
 def norm(text, ids, tag):
+    if IGNORE:
+        try:
+            text = json.dumps(drop(json.loads(text)), separators=(",", ":"), ensure_ascii=False)
+        except ValueError:
+            pass
     text = text.replace(tag, "TAG")
     text = re.sub(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}\+00:00', "<ts>", text)
     text = re.sub(r'\d{4}-\d{2}-\d{2}', "<date>", text)
