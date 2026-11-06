@@ -37,7 +37,7 @@ What we actually do, from feature request to claim (one person driving, Claude C
 9. **After every claim or deploy**: watch `feedback.py`; for a FAULTY check, read its transcript and our request log
    (`RequestLoggingFilter`), fix, and write it up in section 4.
 
-Rules for the agent: [`.claude/rules/`](.claude/rules/). The whole sequence as a Claude Code skill:
+The 4-minute showcase script: [`workflow/showcase.md`](workflow/showcase.md). Rules for the agent: [`.claude/rules/`](.claude/rules/). The whole sequence as a Claude Code skill:
 [`.claude/skills/drip-feature/SKILL.md`](.claude/skills/drip-feature/SKILL.md), with the spec template
 [`workflow/specs/TEMPLATE.md`](workflow/specs/TEMPLATE.md), the HTTP answers the harness has confirmed
 [`workflow/http-conventions.md`](workflow/http-conventions.md), and a cold reviewer
@@ -66,7 +66,10 @@ Rules for the agent: [`.claude/rules/`](.claude/rules/). The whole sequence as a
 - **The harness's own traffic, before the claim**: the harness runs every released feature's checks each minute,
   claimed or not, and our request log records them. After deploying a feature we read what its checks try with
   [`workflow/scripts/harness-traffic.py`](workflow/scripts/harness-traffic.py) and compare our answers with our
-  spec. Acceptance was claimed this way and was 5/5 OK on its first tick; co-speakers, claimed without it, wasn't.
+  spec. Acceptance, the programme export and the ratings change request were claimed this way, and all three were OK
+  from their first tick; co-speakers, workshop registration and scheduling, claimed on unverified guesses, weren't.
+  When the log has no response bodies (successful requests), we rebuild the harness's data from its requests and
+  check our live answers against it: for the ratings change request, 135 of the harness's own talks, 0 mismatches.
 - **The harness**, after the claim: transcripts of FAULTY checks plus our request log. It caught what we didn't (4).
 - **For the framework upgrade** (a teammate, on a branch): `ApiCompatibilityTest` pins what upgrades break silently,
   [`workflow/api-diff.sh`](workflow/api-diff.sh) diffs the old and new build's answers, and we ran `compare.py`
@@ -131,10 +134,15 @@ read-only warm-up after start (`WarmUp.java`), and we bundle changes into fewer 
 on `ubuntu-latest` (a renamed `libxml2`), so the deploy never ran and the live version kept serving. Pinned the job
 to `ubuntu-24.04`. Lesson: a gate that fails closed costs time, not points.
 
-**Ratings, check-3, tick 75: unexplained.** One FAULTY run on `PUT /talks/{id}/ratings/{reviewerId}`; our log shows
-correct answers (30 × 200, 2 × 400, 1 × 404, nothing slow), and the transcript was gone when we looked. It ran at
-12:41:59, a second before the minute changed (`ratedAtDisplay` has minutes), so possibly a clock-boundary flake.
-Lesson: read the transcript as soon as `feedback.py` shows FAULTY; it only keeps the latest faulty run.
+**Two one-off rating failures, both at a minute change: ticks 75 and 183.** Each time one check failed once on
+`PUT /talks/{id}/ratings/{reviewerId}` (ratings/check-3 at 12:41:59; workshop-registration/check-4, which rates a
+workshop before accepting it, at about 14:30:00) and was OK the next tick. Our log shows only correct answers
+(101 × 200 and 3 rejected scores in the second run, nothing slow, no errors), and the transcripts were gone when we
+looked. Both runs straddled a minute boundary, and `ratedAtDisplay` shows minutes ("2:29 PM"): if a check compares it
+with its own clock, a request that crosses the minute between its clock and ours fails. We report the time of the
+rating, as the spec says, so there's nothing to fix; it costs about 1 point each time. Lesson: read the transcript as
+soon as `feedback.py` shows FAULTY, since only the latest faulty run is kept, and look for a pattern before
+debugging a one-off.
 
 ## 5. Reusable artifacts
 

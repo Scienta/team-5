@@ -46,6 +46,10 @@ claiming.
   workshop where an accepted one is.
 - **Bursts at the same moment**: 6 decisions on one talk, about 27 registrations for 20 places, two workshops rushed
   at once. Exactly one winner, exactly the limit, never a 5xx.
+- **One limit reached from two directions at once**: when a request says that several operations count against
+  the same limit ("submissions and co-speaker invitations piling in together"), every one of those operations must
+  take the same lock (the row of what's being limited, e.g. the speaker), or two different operations can each see
+  room and both succeed. Test it with a burst that mixes the operations, and see it fail with the lock removed.
 - **Read-backs after every change and every refusal**: `GET` the resource or list to see that a refused request
   changed nothing, and that the order is right.
 - **Its checks run every minute for every released feature, claimed or not**, so the traffic is there to read before
