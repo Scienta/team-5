@@ -14,7 +14,8 @@ with it (a claimed check staying OK, or failing). Use it to decide the open ques
 | An id in the path that doesn't exist (talk, speaker, workshop; huge ids like 2084049616) | **404** | every feature probes it; all OK |
 | Removing a relation that isn't there (`DELETE` a co-speaker twice) | **404**, nothing changes | **200 failed** co-speakers/check-1 at tick 85; 404 OK since |
 | Input missing, wrong type, blank or not one of the allowed values (`null`, `7` for a string, `1.5` for an id, `" \t "`, `"accepted"` for `ACCEPTED`, `SUBMITTED` as a decision, a non-numeric path id, no body) | **400**, nothing changes | all features; all OK |
-| Input that breaks a rule about itself (the main speaker as their own co-speaker; an id in the body that doesn't exist, e.g. `speakerId` on `POST /talks`) | **400** | co-speakers 3/3, talks 6/6 |
+| Input that breaks a rule about itself (the main speaker as their own co-speaker) | **400** | co-speakers 3/3 |
+| An id in the **body** that doesn't exist (`speakerId` on `POST /talks`, `talkId` on `PUT /programme/…`) | **400**, like other bad input | talks 6/6; **404 failed** scheduling/check-1 at tick 131 |
 | A limit reached (3 talks per speaker, 2 co-speakers, 20 per workshop) | **409**, nothing stored | talks, co-speakers, workshop registration: OK |
 | A duplicate (speaker email, registration email, any letter case) | **409** | speakers 4/4, workshop registration |
 | A state transition the rules don't allow (deciding on an accepted, rejected or withdrawn talk; withdrawing a rejected one) | **409**, nothing changes | acceptance 5/5 from the first tick |

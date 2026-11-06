@@ -262,8 +262,9 @@ class SchedulingTest {
     }
 
     @Test
-    void p14_unknownTalkIs404_guess() throws Exception {
-        assertEquals(404, schedule("R1/S1", 999999).statusCode());
+    void p14_unknownTalkIs400LikeOtherBadInput() throws Exception {
+        // the harness's scheduling/check-1 (tick 131) failed our 404 for an unknown talkId in the body
+        assertEquals(400, schedule("R1/S1", 999999).statusCode());
     }
 
     // ------------------------------------------------------------------ helpers

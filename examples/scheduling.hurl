@@ -176,10 +176,10 @@ PUT {{base_url}}/programme/R3/S1
 { }
 HTTP 400
 
-# P14: an unknown talk (guess: 404)
+# P14: an unknown talk is bad input, 400 (404 failed the harness's check-1 at tick 131)
 PUT {{base_url}}/programme/R3/S1
 { "talkId": 999999999 }
-HTTP 404
+HTTP 400
 
 # Clean up
 DELETE {{base_url}}/programme/R2/S4

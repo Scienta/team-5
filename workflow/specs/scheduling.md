@@ -43,11 +43,11 @@ Rooms `R1`, `R2`, `R3`. Slots, the same in every room:
 | P11 | The rules are checked when a talk is put on the programme; if a talk changes afterwards, the programme stays. | Nothing re-checks the programme: a talk withdrawn after being put stays; co-speakers added later can clash. `GET` still shows it. |
 | P12 | Several committee members work at once; the programme must never break the rules. | `PUT` locks the slot's three rows (`SELECT … FOR UPDATE`, one row per room and slot exists from start-up), checks P6–P10, then writes. A unique index on the talk keeps P9 across slots too: the loser of a race gets **409**. |
 | P13 | (Not in the request) Bad input. | Body missing, not JSON, `talkId` missing, not a whole number: **400**. |
-| P14 | (Not in the request) Unknown talk. | `talkId` that isn't a talk: **404** **(our guess: the talk the request names doesn't exist; the base app answers 400 for an unknown `speakerId` in `POST /talks`, so this one is open)**. |
+| P14 | (Not in the request) Unknown talk. | `talkId` that isn't a talk: **400**, bad input like the other body errors (P13), as for an unknown `speakerId` on `POST /talks`. We first guessed 404; the harness's check-1 failed it at tick 131, right after accepting 404 for an unknown room and 400 for `talkId: 1.5`. |
 
 ## Order of checks
 
-`PUT`: room and slot exist (404) → body valid (400) → talk exists (404) → lock the slot → talk accepted (409) → fits
+`PUT`: room and slot exist (404) → body valid (400) → talk exists (400) → lock the slot → talk accepted (409) → fits
 the slot (409) → room and slot empty (409) → talk not on the programme elsewhere (409) → no speaker in two rooms
 (409) → write → 200.
 
@@ -68,7 +68,7 @@ the slot (409) → room and slot empty (409) → talk not on the programme elsew
 3. `GET` on an empty room and slot: 404 (our guess), or 200 with an Entry without `talkId`?
 4. Putting the same talk in the same room and slot again: 409 (our guess) or "nothing changes" (200)?
 5. A workshop outside `S4`: 409 (our guess) or 400?
-6. An unknown `talkId`: 404 (our guess) or 400?
+6. ~~An unknown `talkId`~~: answered by the harness at tick 131: 400.
 
 ## What the harness tried (filled in after deploying, before claiming)
 
