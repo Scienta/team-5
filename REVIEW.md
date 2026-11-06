@@ -26,7 +26,9 @@ What we actually do, from feature request to claim (one person driving, Claude C
 4. **A Hurl example per feature** in `examples/`, which `examples/run.sh` and the deploy's smoke gate both run.
 5. **Regression check** against what's live: [`workflow/scripts/compare.sh`](workflow/scripts/compare.sh) builds
    `origin/main` and the working tree, sends both the same ~90 requests and prints every difference.
-6. **Push = deploy**, but only through the gates in `.github/workflows/deploy.yml` (`tests`, then `smoke`).
+6. **Push = deploy**, but only through the gates in `.github/workflows/deploy.yml`: the image is built once (layer
+   cache) while `tests` runs, `smoke` runs that exact image with every Hurl file, and `deploy` rolls out the tested
+   image only when both gates are green (about 2 minutes from push to live).
 7. **Verify live**: [`workflow/scripts/feedback.py`](workflow/scripts/feedback.py) (deployed version, every check,
    bleed) and the feature's Hurl file against our URL.
 8. **Read what the harness tries before claiming.** The harness runs a feature's checks every minute even while
@@ -79,6 +81,10 @@ The 4-minute showcase script: [`workflow/showcase.md`](workflow/showcase.md). Ru
 
 ## 3. Claim log
 
+**Result at tick 212 (frozen):** all 11 released features claimed (3 base, 6 drip features, 2 change requests), every
+active check green (43/43; 3 more retired by the change requests), score 2 165 earned against 51 bled. Where the bleed
+came from: `workflow/lessons.md`.
+
 | Feature | Claimed or skipped | Tick | Evidence before claiming |
 |---|---|---|---|
 | Speakers, Talk submissions, Ratings | claimed (base) | 0 | Given. Checked against the specs afterwards: compliant except a missing email format check, fixed in `9d6acef`; 15/15 checks OK throughout. |
@@ -104,6 +110,15 @@ anything the request doesn't say, use the conventional HTTP answer (a relation t
 `DELETE`), mark it as a guess in the spec, and put the guesses in front of a person, who asks the product owner
 before claiming.
 
+**Workshop registration, check-2, tick 119: one rule, two answers.** "Only workshops that the committee has
+accepted take registrations." We answered a waitlisted workshop with 409 (state) and an accepted talk that isn't a
+workshop with 404 ("no such workshop"). The check accepted the 409 and failed the 404, in the same run: it treats the
+sentence as one rule. **Why we missed it:** we saw the risk (the reviewer agent ranked it first, and the harness's
+traffic showed it probing an accepted presentation), but the traffic shows our answers, not its expectations, and we
+claimed on a guess we couldn't verify. **What we changed:** a rule in `.claude/rules/spec-decisions.md` (conditions in
+one sentence get one answer; 404 only for ids that don't exist), and the fix in `d52afa3`. It cost 5 points (bleed
+−7.9 → −12.9) over the six ticks until the fix was live; 4/4 OK from tick 126.
+
 **Programme scheduling, check-1, tick 131: an unknown id in the body.** `PUT /programme/R3/S1 {"talkId":
 2049035110}` got 404 ("talk not found") from us; the check had just accepted 404 for an unknown room and 400 for
 `talkId: 1.5`, and failed the 404. An id in the body that doesn't exist is bad input (400), like an unknown `speakerId`
@@ -115,23 +130,6 @@ reminder that the traffic review belongs between deploy and claim, not before th
 step further, to its next failure at tick 136: the **same `PUT` again** (same talk, same room and slot) got 409 from
 us, and the check expects 200: a `PUT` that sets exactly what's already there breaks no rule. Fixed in the next commit
 and added to `http-conventions.md`. One FAULTY check can hide several wrong guesses behind each other.
-
-**The afternoon load ("2x", from tick 192): bursts that arrived late.** The harness doubled the size of its bursts.
-Checks with bursts on one row (`talks/check-4`, ratings double-clicks) failed with no answer (`None`), and right after
-a teammate's deploy several checks at once. Our log showed every one of those requests answered correctly in 13–479 ms,
-but arriving 3–7 s after the check started, or not at all, while our instance ran 0–3 requests. **Why it got past
-us:** it isn't in our code; the delay is before our container. **What we did:** no deploys while it lasted unless
-needed, a cheap remedy (Tomcat keep-alive, `c636fbd`), and the question to the organisers. It cost about 25 points;
-it stopped when "2x" did, together with our fix, so the fix is unproven (`workflow/lessons.md`).
-
-**Workshop registration, check-2, tick 119: one rule, two answers.** "Only workshops that the committee has
-accepted take registrations." We answered a waitlisted workshop with 409 (state) and an accepted talk that isn't a
-workshop with 404 ("no such workshop"). The check accepted the 409 and failed the 404, in the same run: it treats the
-sentence as one rule. **Why we missed it:** we saw the risk (the reviewer agent ranked it first, and the harness's
-traffic showed it probing an accepted presentation), but the traffic shows our answers, not its expectations, and we
-claimed on a guess we couldn't verify. **What we changed:** a rule in `.claude/rules/spec-decisions.md` (conditions in
-one sentence get one answer; 404 only for ids that don't exist), and the fix in `d52afa3`. It cost 5 points (bleed
-−7.9 → −12.9) over the six ticks until the fix was live; 4/4 OK from tick 126.
 
 **Every deploy costs points, tick 47.** Right after our first deploy, 5 base checks failed once on
 `POST /speakers`. The log showed the new instance answering the harness's first burst in 2.8–4.7 s: the platform's
@@ -152,6 +150,14 @@ with its own clock, a request that crosses the minute between its clock and ours
 rating, as the spec says, so there's nothing to fix; it costs about 1 point each time. Lesson: read the transcript as
 soon as `feedback.py` shows FAULTY, since only the latest faulty run is kept, and look for a pattern before
 debugging a one-off.
+
+**The afternoon load ("2x", from tick 192): bursts that arrived late.** The harness doubled the size of its bursts.
+Checks with bursts on one row (`talks/check-4`, ratings double-clicks) failed with no answer (`None`), and right after
+a teammate's deploy several checks at once. Our log showed every one of those requests answered correctly in 13–479 ms,
+but arriving 3–7 s after the check started, or not at all, while our instance ran 0–3 requests. **Why it got past
+us:** it isn't in our code; the delay is before our container. **What we did:** no deploys while it lasted unless
+needed, a cheap remedy (Tomcat keep-alive, `c636fbd`), and the question to the organisers. It cost about 25 points;
+it stopped when "2x" did, together with our fix, so the fix is unproven (`workflow/lessons.md`).
 
 ## 5. Reusable artifacts
 
@@ -188,5 +194,5 @@ debugging a one-off.
 Treat every decision the spec leaves open as a question, not an answer: list them before writing tests and get a
 person (or the product owner) to confirm them. Every check that failed us after a claim (co-speakers, workshop
 registration, scheduling twice) failed on such a guess, while all our own checks were green: the tests were faithful
-to a decision nobody had checked. The two features claimed only after reading the harness's traffic against the
-deployed code (acceptance, programme export) were OK from the first tick.
+to a decision nobody had checked. The three features claimed only after reading the harness's traffic against the
+deployed code (acceptance, programme export, the ratings change request) were OK from the first tick.
