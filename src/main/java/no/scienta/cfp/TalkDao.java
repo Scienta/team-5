@@ -67,9 +67,26 @@ public class TalkDao {
         return n != null && n > 0;
     }
 
+    /** The cap of 3 talks per speaker (submission cap change request). */
+    public static final int MAX_TALKS = 3;
+
+    // A talk counts toward a speaker's cap when it's still in the running (not rejected or withdrawn) and the speaker
+    // is on it as main speaker or co-speaker (submission cap change request, SC1/SC2). Two bind params: the speaker id.
+    private static final String COUNT_TOWARD_CAP =
+            "SELECT COUNT(*) FROM talk t WHERE t.status NOT IN ('REJECTED', 'WITHDRAWN') "
+                    + "AND (t.speaker_id = ? OR EXISTS "
+                    + "(SELECT 1 FROM talk_co_speaker c WHERE c.talk_id = t.id AND c.speaker_id = ?))";
+
+    /** How many talks count toward this speaker's cap right now. Caller locks the speaker row first (SC7). */
+    public int countTowardCap(long speakerId) {
+        Integer n = jdbc.queryForObject(COUNT_TOWARD_CAP, Integer.class, speakerId, speakerId);
+        return n == null ? 0 : n;
+    }
+
     /**
-     * Inserts the talk only if the speaker has fewer than {@code max} talks. Returns the new id, or null.
-     * The speaker row is locked first so two submissions for the same speaker can't both see room under the limit.
+     * Inserts the talk only if the speaker is below the cap, counting their in-the-running talks as main speaker or
+     * co-speaker (SC1-SC3). Returns the new id, or null. The speaker row is locked first so two submissions, or a
+     * submission and a co-speaker add, for the same speaker can't both see room under the cap (SC7).
      */
     @Transactional
     public Long insertIfBelow(int max, String title, String format, int duration, String level, long speakerId, long submittedAt) {
@@ -77,8 +94,8 @@ public class TalkDao {
         List<Long> ids = jdbc.queryForList(
                 "INSERT INTO talk (title, format, duration, level, status, speaker_id, submitted_at) "
                         + "SELECT ?, ?, ?, ?, 'SUBMITTED', ?, ? "
-                        + "WHERE (SELECT COUNT(*) FROM talk WHERE speaker_id = ?) < ? RETURNING id",
-                Long.class, title, format, duration, level, speakerId, submittedAt, speakerId, max);
+                        + "WHERE (" + COUNT_TOWARD_CAP + ") < ? RETURNING id",
+                Long.class, title, format, duration, level, speakerId, submittedAt, speakerId, speakerId, max);
         return ids.isEmpty() ? null : ids.get(0);
     }
 

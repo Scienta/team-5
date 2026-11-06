@@ -1,6 +1,7 @@
 package no.scienta.cfp;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -8,20 +9,26 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Adding and removing co-speakers. The rules and status codes are in workflow/specs/co-speakers.md (C1-C12).
+ * Adding and removing co-speakers. The rules and status codes are in workflow/specs/co-speakers.md (C1-C12) and
+ * workflow/specs/submission-cap-cr.md (SC4, SC5): co-speaking now counts toward the 3-talk cap.
  */
 @Service
 public class CoSpeakerService {
 
     static final int MAX_CO_SPEAKERS = 2;
 
+    // Statuses that don't count toward the cap: a co-speaker over the cap can still be added to such a talk (SC5).
+    private static final Set<String> OUT_OF_RUNNING = Set.of("REJECTED", "WITHDRAWN");
+
     private final CoSpeakerDao coSpeakers;
     private final SpeakerDao speakers;
+    private final TalkDao talks;
     private final ConferenceService conference;
 
-    public CoSpeakerService(CoSpeakerDao coSpeakers, SpeakerDao speakers, ConferenceService conference) {
+    public CoSpeakerService(CoSpeakerDao coSpeakers, SpeakerDao speakers, TalkDao talks, ConferenceService conference) {
         this.coSpeakers = coSpeakers;
         this.speakers = speakers;
+        this.talks = talks;
         this.conference = conference;
     }
 
@@ -36,6 +43,13 @@ public class CoSpeakerService {
             if (current.size() >= MAX_CO_SPEAKERS) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "a talk has at most " + MAX_CO_SPEAKERS + " co-speakers");
+            }
+            // SC4/SC5: a talk still in the running counts toward the co-speaker's cap; a rejected or withdrawn one
+            // doesn't, so they can be added to it even at the cap. The speaker row was locked above (SC7).
+            boolean inTheRunning = !OUT_OF_RUNNING.contains(coSpeakers.status(talkId));
+            if (inTheRunning && talks.countTowardCap(speakerId) >= TalkDao.MAX_TALKS) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "speaker " + speakerId + " already has " + TalkDao.MAX_TALKS + " talks in the running");
             }
             coSpeakers.add(talkId, speakerId);
         }
@@ -60,7 +74,7 @@ public class CoSpeakerService {
         if (mainSpeaker == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "talk not found");
         }
-        if (!speakers.exists(speakerId)) {
+        if (!speakers.lockExists(speakerId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "speaker not found");
         }
         return mainSpeaker;
