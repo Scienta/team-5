@@ -69,3 +69,10 @@ the slot (409) → room and slot empty (409) → talk not on the programme elsew
 4. Putting the same talk in the same room and slot again: 409 (our guess) or "nothing changes" (200)?
 5. A workshop outside `S4`: 409 (our guess) or 400?
 6. An unknown `talkId`: 404 (our guess) or 400?
+
+## What the harness tried (filled in after deploying, before claiming)
+
+Before the deploy, with no `/programme` endpoint yet (every answer 404), the checks already sent: unknown rooms and
+slots (`R0`, `R4`, `Room1`, `r1`, `s1`, `S0`, `S6`, `slot2`) with `PUT`, `GET` and `DELETE`; a `DELETE` of every
+room and slot before each run; and bursts of `PUT`s to `R1/S2` and `R2/S2` in the same second (P12). The sequences
+and our answers after the deploy: `python3 -I workflow/scripts/harness-traffic.py '/programme' --all`.
