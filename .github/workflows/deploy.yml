@@ -55,7 +55,7 @@ jobs:
   # Gate 2 (team-5): the exact image we'd deploy, started next to a Postgres, must pass /health and every
   # Hurl file in examples/ (the published examples plus our own for the drip features).
   smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # pinned: the Hurl .deb needs libxml2, which newer Ubuntu renamed
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5

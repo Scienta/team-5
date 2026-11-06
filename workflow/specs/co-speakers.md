@@ -27,7 +27,7 @@ Every Talk, wherever it's shown, gets `coSpeakerIds`: the co-speakers' speaker i
 | C7 | Every talk shows its co-speakers. | `coSpeakerIds` on every Talk response: `POST /talks`, `GET /talks/{id}`, `GET /talks` (all, by speaker, ranked), `GET /speakers/{id}/talks`, and the responses of `PUT`/`DELETE` here. |
 | C8 | A speaker's own talk list shows only talks where they're the main speaker. | `GET /speakers/{id}/talks` and `GET /talks?speakerId=` unchanged: main speaker only. |
 | C9 | Co-speaking doesn't use up the 3 submissions; a speaker at the limit can still co-speak. | The limit counts `talk.speaker_id` only, as before. |
-| C10 | (Not in the request) Removing someone who isn't a co-speaker. | **200**, the Talk unchanged (idempotent, like C6). |
+| C10 | (Not in the request) Removing someone who isn't a co-speaker (also: the same one removed twice). | **404**, nothing changes. We first chose 200 (idempotent, like C6); the harness's check-1 removes a co-speaker twice and failed us on the second at tick 85, so it expects an error. |
 | C11 | (Not in the request) Unknown talk or unknown speaker. | **404**. The talk is checked first, then the speaker. Non-numeric ids: 400. |
 | C12 | (Not in the request, but the committee clicks at once) Concurrent adds. | The talk row is locked (`SELECT … FOR UPDATE`) for every add and remove, so concurrent adds can never make three, and the same speaker added twice at once is one row. |
 
@@ -39,6 +39,13 @@ Every Talk, wherever it's shown, gets `coSpeakerIds`: the co-speakers' speaker i
 4. Already a co-speaker: return the talk unchanged (200).
 5. Already two co-speakers (409).
 6. Add, return the talk (200).
+
+## Order of checks for `DELETE`
+
+1. Talk exists, locked (else 404).
+2. Speaker exists (else 404).
+3. Is a co-speaker of this talk (else 404).
+4. Remove, return the talk (200).
 
 ## Open questions for the product owner
 

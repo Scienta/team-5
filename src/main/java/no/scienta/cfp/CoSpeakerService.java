@@ -45,7 +45,10 @@ public class CoSpeakerService {
     @Transactional
     public TalkDto remove(long talkId, long speakerId) {
         lockTalkAndCheckSpeaker(talkId, speakerId);
-        coSpeakers.remove(talkId, speakerId);
+        if (!coSpeakers.remove(talkId, speakerId)) {
+            // C10: the harness removes the same co-speaker twice and expects the second to fail (tick 85)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "not a co-speaker of this talk");
+        }
         return conference.getTalk(talkId);
     }
 
