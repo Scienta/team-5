@@ -56,3 +56,13 @@ CREATE TABLE IF NOT EXISTS talk_co_speaker (
     seq        BIGSERIAL,
     PRIMARY KEY (talk_id, speaker_id)
 );
+
+-- 2026-11 workshop registration (workflow/specs/workshop-registration.md): at most 20 per workshop, one per email
+CREATE TABLE IF NOT EXISTS workshop_registration (
+    id            SERIAL PRIMARY KEY,
+    talk_id       INTEGER NOT NULL,
+    name          TEXT NOT NULL,
+    email         TEXT NOT NULL,
+    registered_at BIGINT NOT NULL      -- epoch millis (UTC)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_workshop_registration_email ON workshop_registration (talk_id, lower(email));
