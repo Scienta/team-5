@@ -80,7 +80,9 @@ or the platform.
 
 - **The harness raises the load in the afternoon** (bursts twice the size). Our instance stayed mostly idle while
   requests reached it seconds late; the logs pointed outside our container. We tried a cheap, reversible remedy
-  (Tomcat keep-alive) and asked whether other teams saw the same.
+  (Tomcat keep-alive: unlimited requests per connection, 75 s idle), live 124 s after the push at 14:54. No failure
+  since, and the switchover cost nothing, but the harness dropped "2x" at the same time, so we can't tell whether
+  it helped. Lesson: when a fix and an outside change land together, say "inconclusive", not "fixed".
 - **Decide on deploys by the bleed, not by the colour**: yellow `2x` markers on green checks cost nothing; only the
   bleed number tells you whether a deploy (which costs a switchover) is worth it.
 

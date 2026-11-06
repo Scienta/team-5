@@ -116,6 +116,14 @@ step further, to its next failure at tick 136: the **same `PUT` again** (same ta
 us, and the check expects 200: a `PUT` that sets exactly what's already there breaks no rule. Fixed in the next commit
 and added to `http-conventions.md`. One FAULTY check can hide several wrong guesses behind each other.
 
+**The afternoon load ("2x", from tick 192): bursts that arrived late.** The harness doubled the size of its bursts.
+Checks with bursts on one row (`talks/check-4`, ratings double-clicks) failed with no answer (`None`), and right after
+a teammate's deploy several checks at once. Our log showed every one of those requests answered correctly in 13–479 ms,
+but arriving 3–7 s after the check started, or not at all, while our instance ran 0–3 requests. **Why it got past
+us:** it isn't in our code; the delay is before our container. **What we did:** no deploys while it lasted unless
+needed, a cheap remedy (Tomcat keep-alive, `c636fbd`), and the question to the organisers. It cost about 25 points;
+it stopped when "2x" did, together with our fix, so the fix is unproven (`workflow/lessons.md`).
+
 **Workshop registration, check-2, tick 119: one rule, two answers.** "Only workshops that the committee has
 accepted take registrations." We answered a waitlisted workshop with 409 (state) and an accepted talk that isn't a
 workshop with 404 ("no such workshop"). The check accepted the 409 and failed the 404, in the same run: it treats the
