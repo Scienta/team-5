@@ -11,9 +11,10 @@ with it (a claimed check staying OK, or failing). Use it to decide the open ques
 | Created something (`POST` of a new resource) | **201** with the resource | speakers, talks, workshop registrations: all checks OK |
 | Changed something, or an action on it (`PUT`, `DELETE`, `POST …/withdraw`) | **200** with the resource as it is now | ratings, co-speakers, acceptance: all checks OK |
 | Doing again what the request says "changes nothing" (adding an existing co-speaker), or what it says replaces (rating again) | **200**, unchanged / replaced | co-speakers 3/3, ratings 5/5 |
-| A `PUT` that sets exactly what's already there (the same talk in the same room and slot), where no rule is broken | **200** with the resource, nothing changes | **409 failed** scheduling/check-1 at tick 136 (PUT, GET, the same PUT) |
+| A `PUT` that sets exactly what's already there (the same talk in the same room and slot), where no rule is broken | **200** with the resource, nothing changes | **409 failed** scheduling/check-1 at tick 136 (PUT, GET, the same PUT); **200 confirmed**: 6/6 from tick 142 |
 | An id in the path that doesn't exist (talk, speaker, workshop; huge ids like 2084049616) | **404** | every feature probes it; all OK |
-| Removing a relation that isn't there (`DELETE` a co-speaker twice) | **404**, nothing changes | **200 failed** co-speakers/check-1 at tick 85; 404 OK since |
+| Removing a relation that isn't there (`DELETE` a co-speaker twice, `DELETE` an empty programme slot) | **404**, nothing changes | **200 failed** co-speakers/check-1 at tick 85; 404 OK since; scheduling 6/6 with 404 for an empty slot |
+| Reading something that's empty (`GET` a programme slot with no talk) | **404** | scheduling 6/6 (its check-1 reads empty slots back after refusals and `DELETE`s) |
 | Input missing, wrong type, blank or not one of the allowed values (`null`, `7` for a string, `1.5` for an id, `" \t "`, `"accepted"` for `ACCEPTED`, `SUBMITTED` as a decision, a non-numeric path id, no body) | **400**, nothing changes | all features; all OK |
 | Input that breaks a rule about itself (the main speaker as their own co-speaker) | **400** | co-speakers 3/3 |
 | An id in the **body** that doesn't exist (`speakerId` on `POST /talks`, `talkId` on `PUT /programme/…`) | **400**, like other bad input | talks 6/6; **404 failed** scheduling/check-1 at tick 131; **400 confirmed** at tick 136 (the check went on past it) |
