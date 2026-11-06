@@ -59,7 +59,10 @@ Rules for the agent: [`.claude/rules/`](.claude/rules/). The whole sequence as a
 - **Side-by-side regression check** (`compare.sh`): for changes that must not change behaviour (the faster
   `GET /talks`, the request logging) 89/89 responses identical; for co-speakers, identical except the new field.
 - **Smoke gate in CI**: the exact image against a fresh Postgres, `/health` version, every `examples/*.hurl`. It
-  caught its own first problem (Hurl wouldn't install on `ubuntu-latest`): no deploy, nothing lost.
+  caught its own first problem (Hurl wouldn't install on `ubuntu-latest`): no deploy, nothing lost. Later we made the
+  pipeline build the image once (layer cache) and deploy exactly the image smoke tested: push to live went from
+  4–4.5 min to 2 min 13 s with a warm cache (the first run, filling the cache, was no faster). We kept the test gate:
+  it's the only thing that stops a race condition before it goes live, and it costs little in parallel.
 - **The harness's own traffic, before the claim**: the harness runs every released feature's checks each minute,
   claimed or not, and our request log records them. After deploying a feature we read what its checks try with
   [`workflow/scripts/harness-traffic.py`](workflow/scripts/harness-traffic.py) and compare our answers with our
