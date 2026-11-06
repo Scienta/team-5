@@ -156,8 +156,10 @@ Checks with bursts on one row (`talks/check-4`, ratings double-clicks) failed wi
 a teammate's deploy several checks at once. Our log showed every one of those requests answered correctly in 13–479 ms,
 but arriving 3–7 s after the check started, or not at all, while our instance ran 0–3 requests. **Why it got past
 us:** it isn't in our code; the delay is before our container. **What we did:** no deploys while it lasted unless
-needed, a cheap remedy (Tomcat keep-alive, `c636fbd`), and the question to the organisers. It cost about 25 points;
-it stopped when "2x" did, together with our fix, so the fix is unproven (`workflow/lessons.md`).
+needed, a cheap remedy (Tomcat keep-alive, `c636fbd`), and the question to the organisers. It cost about 25 points.
+The checks' timelines settle what the yellow on the feedback page was: the note "2x" sat on **every** check at once,
+the green ones too, for exactly ticks 192–198: a harness-wide load phase, not something we triggered. It ended on its
+own at tick 199, before our fix went live, so the fix has never been tested under double load (`workflow/lessons.md`).
 
 ## 5. Reusable artifacts
 

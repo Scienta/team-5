@@ -54,8 +54,9 @@ or the platform.
 - **The API behind `/feedback` is the tool**: `/api/teams/<team>/feedback` has every check's status, the failing
   request and a **transcript of only the latest faulty run**, so read it the moment something turns red
   (`workflow/scripts/feedback.py`). The timeline (`…/timeline?check=…`) shows when a check failed.
-- **Statuses**: `OK`, `FAULTY`, `None` (not run yet, or retired). Notes: `retired`; `2x` = the check runs at double
-  load (shown in yellow), which costs nothing by itself.
+- **Statuses**: `OK`, `FAULTY`, `None` (not run yet, or retired). Notes: `retired`; `2x` = the harness's load
+  phase: it sat on every check at once (ticks 192–198), green or red, and is the yellow on the feedback page. It costs
+  nothing by itself; only the checks that turned red did.
 - **A `None` answer in a transcript means the harness got no answer in time**, not that we answered wrongly. Check our
   own log before touching code: twice it showed we'd answered correctly in milliseconds, seconds after the harness
   gave up.
@@ -80,9 +81,11 @@ or the platform.
 
 - **The harness raises the load in the afternoon** (bursts twice the size). Our instance stayed mostly idle while
   requests reached it seconds late; the logs pointed outside our container. We tried a cheap, reversible remedy
-  (Tomcat keep-alive: unlimited requests per connection, 75 s idle), live 124 s after the push at 14:54. No failure
-  since, and the switchover cost nothing, but the harness dropped "2x" at the same time, so we can't tell whether
-  it helped. Lesson: when a fix and an outside change land together, say "inconclusive", not "fixed".
+  (Tomcat keep-alive: unlimited requests per connection, 75 s idle), live 124 s after the push at 14:54. The timeline
+  shows that "2x" was a harness-wide load phase: the note sat on every check, passing or not, for exactly ticks
+  192–198, and was gone from tick 199, before our fix went live (tick ~207). So the failures stopped on their own,
+  and the fix has never been tested under double load. Lesson: check the timeline of the checks that never failed
+  before crediting a fix; ours would have looked like it worked.
 - **The load that reached us didn't double.** From our log: during "2x" (14:38–14:45) 456–664 requests a minute,
   54–85 in the busiest second; after it (14:56–15:05, no failures) 438–614 a minute, 69–88 in the busiest second.
   So the extra load never reached our container intact, which points the delays at the platform or the harness, not
