@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 /**
  * Misc helpers.
@@ -48,10 +49,11 @@ public class Utils {
     }
 
     /**
-     * "11/4/26, 1:05 PM", what the reviewer UI shows.
+     * "11/4/26, 1:05 PM", what the reviewer UI shows. An explicit pattern, not the locale's SHORT style: from Java 20
+     * the CLDR data puts a narrow no-break space (U+202F) before AM/PM, and the Ratings spec wants an ordinary space.
      */
     public static String usShort(Date d) {
-        DateFormat f = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US);
+        DateFormat f = new SimpleDateFormat("M/d/yy, h:mm a", Locale.US);
         f.setTimeZone(UTC);
         return f.format(d);
     }
@@ -78,8 +80,12 @@ public class Utils {
         return s;
     }
 
+    // local@domain.tld: exactly one @, no whitespace, a non-empty local part, and a domain of dot-separated,
+    // non-empty labels with at least one dot. Deliberately loose otherwise (plus tags, unicode, capitals are fine).
+    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s.]+(\\.[^@\\s.]+)+$");
+
     public static boolean isValidEmail(String email) {
-        return email != null && email.contains("@") && email.indexOf('@') < email.lastIndexOf('.');
+        return email != null && EMAIL.matcher(email).matches();
     }
 
     public static boolean isEmpty(String s) {

@@ -41,6 +41,33 @@ class UtilsTest {
         assertEquals(4.5, Utils.roundRating(4.5));
     }
 
+    // Ratings spec: "M/d/yy, h:mm AM" in UTC, no leading zeros, exactly one ordinary space before AM/PM
+    @Test
+    void usShortIsTheReviewerUiFormatOnAnyJdk() {
+        assertEquals("11/4/26, 1:05 PM", Utils.usShort(Utils.parse("2026-11-04 13:05:00")));
+        assertEquals("11/4/26, 12:00 AM", Utils.usShort(Utils.parse("2026-11-04 00:00:00")));
+        assertEquals("1/9/27, 12:30 PM", Utils.usShort(Utils.parse("2027-01-09 12:30:59")));
+    }
+
+    // Speakers spec: "a real email"
+    @Test
+    void isValidEmail() {
+        assertTrue(Utils.isValidEmail("ada@example.com"));
+        assertTrue(Utils.isValidEmail("ADA+cfp@Example.co.uk"));
+        assertTrue(Utils.isValidEmail("ada-0f6e2b@mail.example.com"));
+        assertFalse(Utils.isValidEmail(null));
+        assertFalse(Utils.isValidEmail(""));
+        assertFalse(Utils.isValidEmail("not-an-email"));
+        assertFalse(Utils.isValidEmail("a@b"));
+        assertFalse(Utils.isValidEmail("@example.com"));
+        assertFalse(Utils.isValidEmail("ada@"));
+        assertFalse(Utils.isValidEmail("ada@@example.com"));
+        assertFalse(Utils.isValidEmail("ada@example..com"));
+        assertFalse(Utils.isValidEmail("ada@.example.com"));
+        assertFalse(Utils.isValidEmail("ada@example.com."));
+        assertFalse(Utils.isValidEmail("ada lovelace@example.com"));
+    }
+
     @Disabled("flaky on Jenkins")
     @Test
     void nowIsCurrentTime() {

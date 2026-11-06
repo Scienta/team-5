@@ -43,6 +43,12 @@ class SpeakersTest {
     }
 
     @Test
+    void anEmailThatIsNotAnEmailIsRejected() throws Exception {
+        assertEquals(400, register("Ada Lovelace", "not-an-email").statusCode());
+        assertEquals(400, register("Ada Lovelace", "ada@localhost").statusCode());
+    }
+
+    @Test
     void concurrentRegistrationsOfOneEmailHaveOneWinner() throws Exception {
         String email = "racer-" + UUID.randomUUID() + "@example.com";
         List<CompletableFuture<HttpResponse<String>>> sent = new ArrayList<>();

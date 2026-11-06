@@ -55,6 +55,10 @@ public class ConferenceService {
 
     @Transactional
     public Map<String, Object> registerSpeaker(SpeakerForm form) {
+        // Speakers spec: "A speaker needs a real name and a real email to register."
+        if (!Utils.isValidEmail(form.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid email");
+        }
         if (speakerDao.emailTaken(form.getEmail())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "email already registered");
         }
