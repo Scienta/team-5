@@ -19,10 +19,12 @@ public class TalkController {
 
     private final ConferenceService service;
     private final CoSpeakerService coSpeakers;
+    private final AcceptanceService acceptance;
 
-    public TalkController(ConferenceService service, CoSpeakerService coSpeakers) {
+    public TalkController(ConferenceService service, CoSpeakerService coSpeakers, AcceptanceService acceptance) {
         this.service = service;
         this.coSpeakers = coSpeakers;
+        this.acceptance = acceptance;
     }
 
     @PostMapping("/talks")
@@ -56,5 +58,15 @@ public class TalkController {
     @DeleteMapping("/talks/{id}/co-speakers/{speakerId}")
     public TalkDto removeCoSpeaker(@PathVariable Long id, @PathVariable Long speakerId) {
         return coSpeakers.remove(id, speakerId);
+    }
+
+    @PutMapping("/talks/{id}/status")
+    public TalkDto decide(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        return acceptance.decide(id, body);
+    }
+
+    @PostMapping("/talks/{id}/withdraw")
+    public TalkDto withdraw(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        return acceptance.withdraw(id, body);
     }
 }

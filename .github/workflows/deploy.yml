@@ -20,6 +20,12 @@ name: deploy
 on:
   push:
     branches: [main]
+    # team-5: a push that only touches these doesn't deploy (every deploy costs points while the new instance is
+    # cold). A push with any other file deploys as usual.
+    paths-ignore:
+      - "**.md"
+      - "workflow/**"
+      - ".claude/**"
   workflow_dispatch:
 
 # One deploy at a time; a newer push waits rather than cancelling a deploy halfway.
