@@ -1,8 +1,9 @@
 # <Feature name>: our spec
 
 Source: harness `/specs/<slug>/spec.md` (Version N, released at tick T, V: n). Published examples: yes / no.
-Rule ids X1–Xn are used in `<Feature>Test` and `examples/<slug>.hurl`. Decisions the request doesn't state are
-marked **(our guess)**; see `.claude/rules/spec-decisions.md`.
+Rule ids X1–Xn are used in `<Feature>Test` and `examples/<slug>.hurl`. Decisions the request doesn't state come from
+`workflow/http-conventions.md` where it has a row, and are otherwise marked **(our guess)**; see
+`.claude/rules/spec-decisions.md`.
 
 ## API
 

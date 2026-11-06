@@ -131,6 +131,10 @@ Lesson: read the transcript as soon as `feedback.py` shows FAULTY; it only keeps
   Claude Code skill, and [`.claude/agents/spec-reviewer.md`](.claude/agents/spec-reviewer.md): a reviewer agent that
   reads the feature request and our code cold and lists where they disagree, before a person claims.
 - [`workflow/specs/TEMPLATE.md`](workflow/specs/TEMPLATE.md): the spec format, distilled from our three specs.
+- [`workflow/http-conventions.md`](workflow/http-conventions.md): which HTTP answer for which situation, each row
+  backed by a harness check that accepted or rejected it, plus the catalogue of what black-box checks try (twice in a
+  row, other letter case, look-alikes that don't qualify, bursts, read-backs). The thing we'd most like to have had at
+  tick 0.
 - `ApiCompatibilityTest.java` and [`workflow/api-diff.sh`](workflow/api-diff.sh) (from the Spring Boot 4 upgrade):
   pin and diff the API's observable behaviour across a framework upgrade.
 - [`workflow/scripts/mvn25.sh`](workflow/scripts/mvn25.sh): build and test on the production JDK in Docker, when a

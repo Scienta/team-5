@@ -12,7 +12,8 @@ numbers. A person claims; never say a feature is done without evidence they can 
    "$(cat .fagdag/harness-url)/specs/<slug>/spec.md"`, and try `/specs/<slug>/examples.hurl` (404 = none). Read the
    specs it links to. Never print the token.
 2. **Write our spec** from `workflow/specs/TEMPLATE.md` into `workflow/specs/<slug>.md`: a rule id per sentence, then
-   every open decision, decided by `.claude/rules/spec-decisions.md` and marked **(our guess)**. List the product-owner
+   every open decision, decided by `workflow/http-conventions.md` and `.claude/rules/spec-decisions.md`, and marked
+   **(our guess)** where no row there settles it. List the product-owner
    questions, behaviour-changing ones first.
 3. **Implement** next to the existing code (a service per feature, `ResponseStatusException` for errors). Anything
    with "at once", "rush" or "several people": lock the row (`SELECT … FOR UPDATE`) and check the rules on the locked

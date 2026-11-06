@@ -6,6 +6,8 @@ and we only see its checks after a person claims (claims are permanent). Learned
 
 - Write every rule and every open decision in `workflow/specs/<slug>.md` with an id (C1, C2, …) before writing
   code. Mark each decision the request doesn't state as **(our guess)** with one line of why.
+- Look the situation up in `workflow/http-conventions.md` first: answers the harness has accepted or rejected, with
+  the evidence, and what its checks try. Add a row when a check confirms or rejects an answer.
 - Default to the conventional HTTP answer, not to cleverness:
   - the resource or relation in the path doesn't exist: **404**, also for `DELETE` (removing what isn't there is
     not success);
