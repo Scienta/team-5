@@ -96,11 +96,24 @@ HTTP 200
 jsonpath "$.coSpeakerIds[0]" == {{co2}}
 jsonpath "$.coSpeakerIds[1]" == {{co1}}
 
-# C10: removing someone who isn't a co-speaker changes nothing
+# C10: removing someone who isn't a co-speaker is 404 and changes nothing
 DELETE {{base_url}}/talks/{{talk_id}}/co-speakers/{{co3}}
+HTTP 404
+
+# C10: removing the same co-speaker twice: the second is 404 (what the harness checks)
+DELETE {{base_url}}/talks/{{talk_id}}/co-speakers/{{co2}}
 HTTP 200
 [Asserts]
-jsonpath "$.coSpeakerIds" count == 2
+jsonpath "$.coSpeakerIds" count == 1
+jsonpath "$.coSpeakerIds[0]" == {{co1}}
+
+DELETE {{base_url}}/talks/{{talk_id}}/co-speakers/{{co2}}
+HTTP 404
+
+GET {{base_url}}/talks/{{talk_id}}
+HTTP 200
+[Asserts]
+jsonpath "$.coSpeakerIds" count == 1
 
 # C11: unknown talk or speaker
 PUT {{base_url}}/talks/999999999/co-speakers/{{co1}}

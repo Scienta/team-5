@@ -141,14 +141,20 @@ class CoSpeakersTest {
     }
 
     @Test
-    void c10_removingSomeoneWhoIsntACoSpeakerChangesNothing() throws Exception {
+    void c10_removingSomeoneWhoIsntACoSpeakerIs404AndChangesNothing() throws Exception {
         long main = speaker();
         long a = speaker();
         long b = speaker();
         long talk = talk(main);
         ok(put(talk, a));
-        assertEquals(List.of(a), ids(ok(delete(talk, b))));
-        assertEquals(List.of(a), ids(ok(delete(talk, main))));
+        assertEquals(404, delete(talk, b).statusCode());
+        assertEquals(404, delete(talk, main).statusCode());
+        assertEquals(List.of(a), ids(get("/talks/" + talk)));
+
+        // the harness's case (tick 85): the same co-speaker removed twice
+        assertEquals(List.of(), ids(ok(delete(talk, a))));
+        assertEquals(404, delete(talk, a).statusCode());
+        assertEquals(List.of(), ids(get("/talks/" + talk)));
     }
 
     @Test
