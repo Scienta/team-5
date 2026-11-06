@@ -68,12 +68,13 @@ class WorkshopRegistrationTest {
     }
 
     @Test
-    void w3_onlyWorkshops_404isAGuess() throws Exception {
-        long talk = talk(speaker(), "PRESENTATION");
+    void w3_onlyWorkshops_409LikeNotAccepted() throws Exception {
+        // the harness's check-2 (tick 119): an accepted LIGHTNING_20 talk gets the same 409 as a waitlisted workshop
+        long talk = talk(speaker(), "LIGHTNING_20");
         rateTwice(talk);
         ok(decide(talk, "ACCEPTED"));
-        assertEquals(404, register(talk, "A", email()).statusCode());
-        assertEquals(404, send(HttpRequest.newBuilder(uri("/workshops/" + talk + "/registrations")).GET().build()).statusCode());
+        assertEquals(409, register(talk, "A", email()).statusCode());
+        assertEquals(0, get("/workshops/" + talk + "/registrations").size());
         assertEquals(404, register(999_999_999L, "A", email()).statusCode());
         assertEquals(400, send(post("/workshops/abc/registrations", "{\"name\":\"A\",\"email\":\"" + email() + "\"}")).statusCode());
     }

@@ -39,13 +39,18 @@ public class WorkshopRegistrationService {
 
     @Transactional
     public Map<String, Object> register(long workshopId, Map<String, Object> body) {
-        String status = workshop(workshopId, true);
+        String[] talk = talk(workshopId, true);
         String name = text(body, "name");
         String email = text(body, "email");
         if (!Utils.isValidEmail(email)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid email");
         }
-        if (!"ACCEPTED".equals(status)) {
+        // W3/W4: "only workshops that the committee has accepted take registrations", one rule, one answer. The
+        // harness's check-2 expects 409 for an accepted non-workshop as for a waitlisted workshop (tick 119).
+        if (!"WORKSHOP".equals(talk[0])) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "only workshops take registrations");
+        }
+        if (!"ACCEPTED".equals(talk[1])) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "only accepted workshops take registrations");
         }
         Integer taken = jdbc.queryForObject(
@@ -69,19 +74,19 @@ public class WorkshopRegistrationService {
     }
 
     public List<Map<String, Object>> registrations(long workshopId) {
-        workshop(workshopId, false);
+        talk(workshopId, false);
         return jdbc.query("SELECT id, talk_id, name, email FROM workshop_registration WHERE talk_id = ? ORDER BY id",
                 REGISTRATION, workshopId);
     }
 
-    /** The workshop's status; 404 if there's no such talk or it isn't a workshop (W3). */
-    private String workshop(long talkId, boolean lock) {
+    /** The talk's {format, status}; 404 only if there's no such talk (W3, W11). */
+    private String[] talk(long talkId, boolean lock) {
         List<String[]> rows = jdbc.query("SELECT format, status FROM talk WHERE id = ?" + (lock ? " FOR UPDATE" : ""),
                 (rs, n) -> new String[] {rs.getString("format"), rs.getString("status")}, talkId);
-        if (rows.isEmpty() || !"WORKSHOP".equals(rows.get(0)[0])) {
+        if (rows.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "workshop not found");
         }
-        return rows.get(0)[1];
+        return rows.get(0);
     }
 
     private static String text(Map<String, Object> body, String field) {

@@ -44,14 +44,25 @@ Rules for the agent: [`.claude/rules/`](.claude/rules/). Checklist before claimi
 
 - **Against the spec, rule by rule**: the agent maps every rule in the feature request to code and to a test, in a
   table, before we accept the change (sections "Rules" in `workflow/specs/*.md`).
-- **Tests on the production Java** (11), with Testcontainers Postgres: 35 tests, run by us and by the `tests` gate.
-- **Mutation check for concurrency**: we removed `FOR UPDATE` from `CoSpeakerDao.lockTalk` and watched
-  `c12_concurrentAddsNeverMakeThree` fail (a talk got 4 co-speakers), then put it back.
+- **Tests on the production Java** (25 since the Spring Boot 4 upgrade; 11 before), with Testcontainers Postgres:
+  60 tests, run by us and by the `tests` gate. Without a local JDK 25 we run them in Docker with
+  [`workflow/scripts/mvn25.sh`](workflow/scripts/mvn25.sh).
+- **Mutation check for every concurrency rule**: we remove the `FOR UPDATE` and watch the test fail, then put it
+  back. Co-speakers: a talk got 4 co-speakers (max 2). Acceptance: 5 committee decisions "won" on one talk, and a
+  reject and a withdraw both succeeded. Workshop registration: 22 attendees in 20 places. A concurrency test we
+  haven't seen fail doesn't count as evidence.
 - **Side-by-side regression check** (`compare.sh`): for changes that must not change behaviour (the faster
   `GET /talks`, the request logging) 89/89 responses identical; for co-speakers, identical except the new field.
 - **Smoke gate in CI**: the exact image against a fresh Postgres, `/health` version, every `examples/*.hurl`. It
   caught its own first problem (Hurl wouldn't install on `ubuntu-latest`): no deploy, nothing lost.
+- **The harness's own traffic, before the claim**: the harness runs every released feature's checks each minute,
+  claimed or not, and our request log records them. After deploying a feature we read what its checks try with
+  [`workflow/scripts/harness-traffic.py`](workflow/scripts/harness-traffic.py) and compare our answers with our
+  spec. Acceptance was claimed this way and was 5/5 OK on its first tick; co-speakers, claimed without it, wasn't.
 - **The harness**, after the claim: transcripts of FAULTY checks plus our request log. It caught what we didn't (4).
+- **For the framework upgrade** (a teammate, on a branch): `ApiCompatibilityTest` pins what upgrades break silently,
+  [`workflow/api-diff.sh`](workflow/api-diff.sh) diffs the old and new build's answers, and we ran `compare.py`
+  between the Java 11 build and the Java 25 Docker image: only the wording of Spring's error messages differed.
 - **A person** reads each diff and the agent's evidence before pushing, and asks "how do you know?" when the agent
   says "safe".
 
@@ -84,6 +95,10 @@ small CPU made the JVM start in 38 s and the first requests slow. **Why we misse
 **What we changed:** JVM flags for start-up (C1 only, serial GC: 56 s → 25 s at 0.25 CPU in `docker --cpus`), a
 read-only warm-up after start (`WarmUp.java`), and we bundle changes into fewer deploys.
 
+**Our gate's first run failed, and that was the gate working (tick ~88).** The new `smoke` job couldn't install Hurl
+on `ubuntu-latest` (a renamed `libxml2`), so the deploy never ran and the live version kept serving. Pinned the job
+to `ubuntu-24.04`. Lesson: a gate that fails closed costs time, not points.
+
 **Ratings, check-3, tick 75: unexplained.** One FAULTY run on `PUT /talks/{id}/ratings/{reviewerId}`; our log shows
 correct answers (30 × 200, 2 × 400, 1 × 404, nothing slow), and the transcript was gone when we looked. It ran at
 12:41:59, a second before the minute changed (`ratedAtDisplay` has minutes), so possibly a clock-boundary flake.
@@ -100,7 +115,17 @@ Lesson: read the transcript as soon as `feedback.py` shows FAULTY; it only keeps
 - [`workflow/specs/co-speakers.md`](workflow/specs/co-speakers.md): the spec format (rule ids, decisions with
   reasons, order of checks, open questions), and [`workflow/checklists/before-claim.md`](workflow/checklists/before-claim.md).
 - `RequestLoggingFilter.java`: one line per request with the body and the error reason, the cheapest way to see
-  what an external checker sends.
+  what an external checker sends. Together with
+  [`workflow/scripts/harness-traffic.py`](workflow/scripts/harness-traffic.py) it turns any black-box checker into
+  readable test cases: run the checks against a deployed but unclaimed feature and read what they try.
+- [`.claude/skills/drip-feature/SKILL.md`](.claude/skills/drip-feature/SKILL.md): the whole feature workflow as a
+  Claude Code skill, and [`.claude/agents/spec-reviewer.md`](.claude/agents/spec-reviewer.md): a reviewer agent that
+  reads the feature request and our code cold and lists where they disagree, before a person claims.
+- [`workflow/specs/TEMPLATE.md`](workflow/specs/TEMPLATE.md): the spec format, distilled from our three specs.
+- `ApiCompatibilityTest.java` and [`workflow/api-diff.sh`](workflow/api-diff.sh) (from the Spring Boot 4 upgrade):
+  pin and diff the API's observable behaviour across a framework upgrade.
+- [`workflow/scripts/mvn25.sh`](workflow/scripts/mvn25.sh): build and test on the production JDK in Docker, when a
+  laptop doesn't have it.
 
 ## 6. One thing we'd do differently
 
