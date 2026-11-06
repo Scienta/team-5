@@ -7,8 +7,10 @@
 # was live before (which keeps serving) and the job fails, with the container's error_message and
 # its logs since the job started in the last step.
 #
-# team-5: the deploy job waits for two gates, `tests` (./mvnw verify on Java 25) and `smoke` (the Docker image
-# against a fresh Postgres, then examples/*.hurl). A red gate means no deploy; the live version keeps serving.
+# team-5: the image is built once (job `image`, cached layers, pushed as app:<sha> only) in parallel with `tests`
+# (./mvnw verify on Java 25); `smoke` runs that image against a fresh Postgres and examples/*.hurl. The deploy job waits
+# for both gates, points app:latest at the tested image and rolls out. A red gate means no deploy; the live version
+# keeps serving.
 #
 # You own this file. Add your own gates (tests, Hurl examples, review checks) as jobs that the
 # deploy job `needs`; they run on GitHub-hosted runners. If you break it, you lose your own ticks.
@@ -58,30 +60,65 @@ jobs:
       - name: Tests
         run: ./mvnw -B verify
 
-  # Gate 2 (team-5): the exact image we'd deploy, started next to a Postgres, must pass /health and every
-  # Hurl file in examples/ (the published examples plus our own for the drip features).
-  smoke:
-    runs-on: ubuntu-24.04 # pinned: the Hurl .deb needs libxml2, which newer Ubuntu renamed
+  # team-5: the image is built once, with Docker's layer cache, as soon as the push arrives (in parallel with the
+  # tests), and pushed as app:<sha> only. That changes nothing live: the platform runs app:latest, which only the
+  # deploy job moves. smoke tests this exact image, and deploy rolls out the same bytes.
+  image:
+    runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_REGISTRY: ${{ vars.SCW_REGISTRY }}
     steps:
       - uses: actions/checkout@v5
-      - name: Build the image
-        run: docker build --platform linux/amd64 --build-arg "GIT_SHA=$GITHUB_SHA" --tag cfp:smoke .
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to the registry
+        run: echo "$SCW_SECRET_KEY" | docker login "${SCW_REGISTRY%%/*}" --username nologin --password-stdin
+      - name: Build and push app:<sha> (cached layers)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          build-args: GIT_SHA=${{ github.sha }}
+          tags: ${{ vars.SCW_REGISTRY }}/app:${{ github.sha }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # A plain image manifest, as `docker build` pushed before: no attestation index for the platform to pull.
+          provenance: false
+          sbom: false
+
+  # Gate 2 (team-5): the exact image we'll deploy, started next to a Postgres, must pass /health and every
+  # Hurl file in examples/ (the published examples plus our own for the drip features).
+  smoke:
+    needs: image
+    runs-on: ubuntu-24.04 # pinned: the Hurl .deb needs libxml2, which newer Ubuntu renamed
+    timeout-minutes: 15
+    env:
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      SCW_REGISTRY: ${{ vars.SCW_REGISTRY }}
+      IMAGE: ${{ vars.SCW_REGISTRY }}/app:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Hurl
+        run: |
+          curl -fsSLO https://github.com/Orange-OpenSource/hurl/releases/download/8.1.0/hurl_8.1.0_amd64.deb
+          sudo apt-get install -y ./hurl_8.1.0_amd64.deb
+      - name: Pull the image
+        run: |
+          echo "$SCW_SECRET_KEY" | docker login "${SCW_REGISTRY%%/*}" --username nologin --password-stdin
+          docker pull "$IMAGE"
       - name: Start Postgres and the image
         run: |
           docker network create smoke
           docker run -d --name db --network smoke -e POSTGRES_DB=cfp -e POSTGRES_USER=cfp -e POSTGRES_PASSWORD=cfp postgres:16-alpine
           docker run -d --name app --network smoke -p 8080:8080 \
-            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=cfp -e PGUSER=cfp -e PGPASSWORD=cfp -e PGSSLMODE=disable cfp:smoke
+            -e PGHOST=db -e PGPORT=5432 -e PGDATABASE=cfp -e PGUSER=cfp -e PGPASSWORD=cfp -e PGSSLMODE=disable "$IMAGE"
           for i in $(seq 1 90); do
             if curl -fsS localhost:8080/health; then echo; break; fi
-            sleep 2
+            sleep 1
           done
           curl -fsS localhost:8080/health | grep -q "\"version\":\"$GITHUB_SHA\"" || { docker logs app; exit 1; }
-      - name: Install Hurl
-        run: |
-          curl -fsSLO https://github.com/Orange-OpenSource/hurl/releases/download/8.1.0/hurl_8.1.0_amd64.deb
-          sudo apt-get install -y ./hurl_8.1.0_amd64.deb
       - name: Hurl examples
         run: examples/run.sh http://localhost:8080
       - name: App logs
@@ -111,12 +148,15 @@ jobs:
           version: v2.65.2
       - name: Log in to the registry
         run: echo "$SCW_SECRET_KEY" | docker login "${SCW_REGISTRY%%/*}" --username nologin --password-stdin
-      - name: Build and push
+      # team-5: no build here. The image job pushed app:<sha> and smoke tested it; point app:latest at it in the
+      # registry (no pull, no push of layers).
+      - name: Point app:latest at the tested app:<sha>
         run: |
-          echo "Building $SHA as $IMAGE:$SHA and $IMAGE:latest"
-          docker build --platform linux/amd64 --build-arg "GIT_SHA=$SHA" --tag "$IMAGE:$SHA" --tag "$IMAGE:latest" .
-          docker push "$IMAGE:$SHA"
-          docker push "$IMAGE:latest"
+          echo "Promoting $IMAGE:$SHA to $IMAGE:latest"
+          docker buildx imagetools create --tag "$IMAGE:latest" "$IMAGE:$SHA" || {
+            echo "imagetools failed; pulling, tagging and pushing instead"
+            docker pull "$IMAGE:$SHA" && docker tag "$IMAGE:$SHA" "$IMAGE:latest" && docker push "$IMAGE:latest"
+          }
       - name: Roll out
         id: rollout
         env:
