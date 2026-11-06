@@ -3,7 +3,7 @@
 - Push to `main` deploys to the scored service. Every deploy costs a few points while the new instance starts cold
   (REVIEW.md section 4, tick 47), so bundle changes; don't push one small fix at a time unless a claimed check is
   FAULTY (then push the fix at once).
-- Before saying a change is safe: the full test suite on Java 25, the production Java since the Spring Boot 4 upgrade (`JAVA_HOME=$(/usr/libexec/java_home -v 25)`), every
+- Before saying a change is safe: the full test suite on Java 25, the production Java since the Spring Boot 4 upgrade (`JAVA_HOME=$(/usr/libexec/java_home -v 25)` on macOS; without a local JDK 25, `workflow/scripts/mvn25.sh` runs `./mvnw` in Docker), every
   `examples/*.hurl`, and for anything that shouldn't change behaviour `workflow/scripts/compare.sh` (0 differences,
   or only fields the feature adds, via `IGNORE_FIELDS`). Report the numbers, not "should be fine".
 - A concurrency test counts only after it has been seen to fail with the lock removed.
