@@ -13,6 +13,12 @@ and we only see its checks after a person claims (claims are permanent). Learned
   - the request is valid but conflicts with the current state (a limit reached, a transition not allowed): **409**;
   - "changes nothing" in the request (e.g. adding twice) means 200 with the unchanged resource, but only where the
     request says so. Don't extend it by analogy to other operations.
+- When the request puts several conditions in one sentence ("only workshops that the committee has accepted take
+  registrations"), they are one rule: give every way of breaking it the same answer. Don't split it into "not that
+  kind of resource" (404) and "wrong state" (409). Learned at tick 119: the harness accepted our 409 for a waitlisted
+  workshop and failed our 404 for an accepted non-workshop, in the same check.
+- 404 is for ids that don't exist. A resource that exists but doesn't qualify for the operation is a 409 (or 400 if
+  it's the input itself that's wrong).
 - Check order: path resources first (404), then the body (400), then state (409).
 - Finish by listing the guesses for the person driving, so they can ask the product owner before the claim. Don't
   call a feature ready while a guess is unconfirmed; say which ones are open.
