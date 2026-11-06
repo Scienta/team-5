@@ -75,6 +75,7 @@ Rules for the agent: [`.claude/rules/`](.claude/rules/). Checklist before claimi
 | Acceptance state machine | claimed | 100 | Our spec with every guess marked (`workflow/specs/acceptance.md`, product-owner questions listed); 12 tests (A1–A12) green on Java 11; both concurrency tests seen to fail without the lock (5 "winners" on one talk); `examples/acceptance.hurl` green locally and live; regression check 89/89 identical; **the harness's own acceptance traffic read before claiming** (`harness-traffic.py`, 2 runs, ~70 requests, no 5xx, every sequence answered as the spec says: same reviewer twice still blocks accepting, 6 concurrent decisions have one winner, withdrawn is final). Not seen in its traffic: re-waitlisting and co-speaker withdrawal (our guesses). |
 | Spring Boot 4 | claimed | 106 | Done by a teammate on a branch (PR #1), merged and deployed before the claim. Before claiming: `/actuator/info` live reports the real running versions (Java 25.0.5, Boot 4.1.2, Framework 7.0.10); all 23 claimed checks OK on the new version with no new bleed; the old (Java 11 / Boot 2.7) and new (Java 25 / Boot 4, as the Docker image) side by side with `compare.py`: 78/89 identical, the 11 differences only the wording of Spring's error messages, no status code or success body changed; all Hurl files green on the new image; the upgrade's own `ApiCompatibilityTest` pins what upgrades break silently (trailing slash, date formats, field order, comments in JSON, error format). Production start-up 19 s (was 38 s originally). |
 | Workshop registration | claimed | 119 | Our spec with guesses marked; 9 tests (W1–W11) green on Java 25; the rush test seen to fail without the lock (22 in 20 places), the same-email rush also stopped by the unique index; `examples/workshop-registration.hurl` green locally and live; regression 89/89; the harness's traffic read before claiming (249 requests over several runs, no 5xx, rushes held at exactly 20, the uppercase duplicate refused); an independent cold review by the `spec-reviewer` agent, which agreed on all behaviour and named our 404/409 codes as the top risk. **check-2 went FAULTY at tick 119** on exactly that risk (see 4), fixed in `d52afa3`. |
+| Programme scheduling | claimed | 130 | Done by a teammate on a branch (PR #2) with our workflow: spec from the template with P1–P14 and six guesses listed for the product owner (`workflow/specs/scheduling.md`); 18 tests in `SchedulingTest`, each concurrency test seen to fail with its lock or unique index removed; 78 tests and 7/7 Hurl files (121 requests) green; `compare.sh` 89/89 identical; the harness's traffic read **before** the deploy (unknown rooms and slots, a `DELETE` of every slot each run, bursts on one slot). Claimed right after the deploy, without reading its traffic against the new code. **check-1 went FAULTY at tick 131** on guess P14, unknown `talkId` (see 4); fixed in `1207898`. Checks 2–6 OK from the first tick. |
 
 ## 4. What the harness caught that we didn't
 
@@ -88,6 +89,15 @@ nothing" was only promised for adding). **What we changed:** the rule in `.claud
 anything the request doesn't say, use the conventional HTTP answer (a relation that doesn't exist is 404, also on
 `DELETE`), mark it as a guess in the spec, and put the guesses in front of a person, who asks the product owner
 before claiming.
+
+**Programme scheduling, check-1, tick 131: an unknown id in the body.** `PUT /programme/R3/S1 {"talkId":
+2049035110}` got 404 ("talk not found") from us; the check had just accepted 404 for an unknown room and 400 for
+`talkId: 1.5`, and failed the 404. An id in the body that doesn't exist is bad input (400), like an unknown `speakerId`
+on `POST /talks`, which the talk checks have accepted all day. **Why we missed it:** it was the guess our own review
+ranked riskiest, and the claim came straight after the deploy, before anyone read the harness's traffic against the
+new code (the traffic was only read before the deploy, when every answer was a 404). **What we changed:** the fix in
+`1207898`, a new row in `workflow/http-conventions.md` ("an id in the body that doesn't exist → 400"), and the
+reminder that the traffic review belongs between deploy and claim, not before the deploy.
 
 **Workshop registration, check-2, tick 119: one rule, two answers.** "Only workshops that the committee has
 accepted take registrations." We answered a waitlisted workshop with 409 (state) and an accepted talk that isn't a
