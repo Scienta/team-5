@@ -37,7 +37,11 @@ What we actually do, from feature request to claim (one person driving, Claude C
 9. **After every claim or deploy**: watch `feedback.py`; for a FAULTY check, read its transcript and our request log
    (`RequestLoggingFilter`), fix, and write it up in section 4.
 
-Rules for the agent: [`.claude/rules/`](.claude/rules/). Checklist before claiming:
+Rules for the agent: [`.claude/rules/`](.claude/rules/). The whole sequence as a Claude Code skill:
+[`.claude/skills/drip-feature/SKILL.md`](.claude/skills/drip-feature/SKILL.md), with the spec template
+[`workflow/specs/TEMPLATE.md`](workflow/specs/TEMPLATE.md), the HTTP answers the harness has confirmed
+[`workflow/http-conventions.md`](workflow/http-conventions.md), and a cold reviewer
+[`.claude/agents/spec-reviewer.md`](.claude/agents/spec-reviewer.md). Checklist before claiming:
 [`workflow/checklists/before-claim.md`](workflow/checklists/before-claim.md).
 
 ## 2. How we reviewed agent output
@@ -45,12 +49,13 @@ Rules for the agent: [`.claude/rules/`](.claude/rules/). Checklist before claimi
 - **Against the spec, rule by rule**: the agent maps every rule in the feature request to code and to a test, in a
   table, before we accept the change (sections "Rules" in `workflow/specs/*.md`).
 - **Tests on the production Java** (25 since the Spring Boot 4 upgrade; 11 before), with Testcontainers Postgres:
-  60 tests, run by us and by the `tests` gate. Without a local JDK 25 we run them in Docker with
-  [`workflow/scripts/mvn25.sh`](workflow/scripts/mvn25.sh).
+  88 tests (87 run, 1 disabled since before the game), run by us and by the `tests` gate. Without a local JDK 25
+  we run them in Docker with [`workflow/scripts/mvn25.sh`](workflow/scripts/mvn25.sh).
 - **Mutation check for every concurrency rule**: we remove the `FOR UPDATE` and watch the test fail, then put it
   back. Co-speakers: a talk got 4 co-speakers (max 2). Acceptance: 5 committee decisions "won" on one talk, and a
-  reject and a withdraw both succeeded. Workshop registration: 22 attendees in 20 places. A concurrency test we
-  haven't seen fail doesn't count as evidence.
+  reject and a withdraw both succeeded. Workshop registration: 22 attendees in 20 places. Scheduling: without the
+  slot lock one speaker got all 3 rooms of a slot and two talks "won" the same room; without the unique index one
+  talk went into 4 places at once. A concurrency test we haven't seen fail doesn't count as evidence.
 - **Side-by-side regression check** (`compare.sh`): for changes that must not change behaviour (the faster
   `GET /talks`, the request logging) 89/89 responses identical; for co-speakers, identical except the new field.
 - **Smoke gate in CI**: the exact image against a fresh Postgres, `/health` version, every `examples/*.hurl`. It
@@ -144,7 +149,8 @@ Lesson: read the transcript as soon as `feedback.py` shows FAULTY; it only keeps
 - [`.claude/skills/drip-feature/SKILL.md`](.claude/skills/drip-feature/SKILL.md): the whole feature workflow as a
   Claude Code skill, and [`.claude/agents/spec-reviewer.md`](.claude/agents/spec-reviewer.md): a reviewer agent that
   reads the feature request and our code cold and lists where they disagree, before a person claims.
-- [`workflow/specs/TEMPLATE.md`](workflow/specs/TEMPLATE.md): the spec format, distilled from our three specs.
+- [`workflow/specs/TEMPLATE.md`](workflow/specs/TEMPLATE.md): the spec format, distilled from our first three
+  specs and used for the last two (scheduling, export).
 - [`workflow/http-conventions.md`](workflow/http-conventions.md): which HTTP answer for which situation, each row
   backed by a harness check that accepted or rejected it, plus the catalogue of what black-box checks try (twice in a
   row, other letter case, look-alikes that don't qualify, bursts, read-backs). The thing we'd most like to have had at
@@ -157,5 +163,7 @@ Lesson: read the transcript as soon as `feedback.py` shows FAULTY; it only keeps
 ## 6. One thing we'd do differently
 
 Treat every decision the spec leaves open as a question, not an answer: list them before writing tests and get a
-person (or the product owner) to confirm them. The one feature we got wrong was green on all our own checks; the
-tests were faithful to a decision nobody had checked.
+person (or the product owner) to confirm them. Every check that failed us after a claim (co-speakers, workshop
+registration, scheduling twice) failed on such a guess, while all our own checks were green: the tests were faithful
+to a decision nobody had checked. The two features claimed only after reading the harness's traffic against the
+deployed code (acceptance, programme export) were OK from the first tick.
