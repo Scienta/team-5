@@ -66,3 +66,15 @@ CREATE TABLE IF NOT EXISTS workshop_registration (
     registered_at BIGINT NOT NULL      -- epoch millis (UTC)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_workshop_registration_email ON workshop_registration (talk_id, lower(email));
+
+-- 2026-11 programme scheduling (workflow/specs/scheduling.md): one row per room and slot, from the start, so a PUT can
+-- lock all three rooms of a slot (P12). talk_id is unique: a talk is on the programme only once (P9).
+CREATE TABLE IF NOT EXISTS programme (
+    room    TEXT NOT NULL,
+    slot    TEXT NOT NULL,
+    talk_id INTEGER UNIQUE,
+    PRIMARY KEY (room, slot)
+);
+INSERT INTO programme (room, slot)
+SELECT r, s FROM unnest(ARRAY['R1', 'R2', 'R3']) AS r, unnest(ARRAY['S1', 'S2', 'S3', 'S4', 'S5']) AS s
+ON CONFLICT DO NOTHING;
