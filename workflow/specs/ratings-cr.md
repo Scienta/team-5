@@ -26,4 +26,7 @@ trimming reorders) and `UtilsTest.averageRating`; `examples/ratings-cr.hurl`.
 
 ## What the harness tried (filled in after deploying, before claiming)
 
-`python3 -I workflow/scripts/harness-traffic.py '/ratings/|sort=rating' --all`
+`python3 -I workflow/scripts/harness-traffic.py '/ratings/|sort=rating' --all`: about 300 ratings in 3 minutes, no errors.
+Our log keeps no bodies for successful requests, so we rebuilt each talk's ratings from the traffic (the last score per
+reviewer), computed the expected average per RC1/RC2 and compared it with `GET /talks/{id}` live: 135 talks, 18 with
+5+ ratings, 0 mismatches. Claimed at tick 179.
