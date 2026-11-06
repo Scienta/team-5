@@ -28,8 +28,13 @@ What we actually do, from feature request to claim (one person driving, Claude C
    `origin/main` and the working tree, sends both the same ~90 requests and prints every difference.
 6. **Push = deploy**, but only through the gates in `.github/workflows/deploy.yml` (`tests`, then `smoke`).
 7. **Verify live**: [`workflow/scripts/feedback.py`](workflow/scripts/feedback.py) (deployed version, every check,
-   bleed) and the feature's Hurl file against our URL. Then a person claims.
-8. **After every claim or deploy**: watch `feedback.py`; for a FAULTY check, read its transcript and our request log
+   bleed) and the feature's Hurl file against our URL.
+8. **Read what the harness tries before claiming.** The harness runs a feature's checks every minute even while
+   it's unclaimed, and our request log records them:
+   [`workflow/scripts/harness-traffic.py`](workflow/scripts/harness-traffic.py) shows each sequence its checks try
+   and what we answered. We compare that with our spec's guesses, then a person claims. (Added after co-speakers:
+   the log would have shown "`DELETE` twice → 200" before the claim.)
+9. **After every claim or deploy**: watch `feedback.py`; for a FAULTY check, read its transcript and our request log
    (`RequestLoggingFilter`), fix, and write it up in section 4.
 
 Rules for the agent: [`.claude/rules/`](.claude/rules/). Checklist before claiming:

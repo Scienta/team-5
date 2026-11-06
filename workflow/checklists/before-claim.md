@@ -12,5 +12,9 @@ the claim log (REVIEW.md section 3).
 - [ ] Pushed; the deploy's `tests` and `smoke` gates green; `feedback.py` shows the new version live and every
       claimed check OK.
 - [ ] `examples/<slug>.hurl` green against `https://fagsem-h2026-team-5.scienta.cloud`.
+- [ ] **Read the harness's traffic for the feature** (it runs the checks every minute, also before the claim):
+      wait 2–3 ticks after the deploy, then `python3 -I workflow/scripts/harness-traffic.py '<path regex>'`.
+      For every sequence it tries (twice in a row, wrong speaker, unknown ids, …), is our answer what the business
+      would expect? Anything surprising: fix or ask the product owner first. A 5xx is always a bug.
 - [ ] Claim (a person), then the claim log entry with the tick and this evidence.
 - [ ] Watch `feedback.py` for the next few ticks; anything FAULTY goes into REVIEW.md section 4.
