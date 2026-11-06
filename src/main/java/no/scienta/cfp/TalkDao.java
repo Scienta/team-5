@@ -14,8 +14,9 @@ public class TalkDao {
     // Talks with their rating count, score total and co-speakers in one query (a LATERAL aggregate per talk, using the rating
     // primary key), instead of one extra query per talk. GET /talks returns every talk, and the table grows all day.
     private static final String SELECT = "SELECT t.id, t.title, t.format, t.duration, t.level, t.status, t.speaker_id, "
-            + "t.submitted_at, r.cnt, r.total, c.co FROM talk t "
-            + "CROSS JOIN LATERAL (SELECT COUNT(*) AS cnt, COALESCE(SUM(score), 0) AS total "
+            + "t.submitted_at, r.cnt, r.total, r.top, r.bottom, c.co FROM talk t "
+            + "CROSS JOIN LATERAL (SELECT COUNT(*) AS cnt, COALESCE(SUM(score), 0) AS total, "
+            + "COALESCE(MAX(score), 0) AS top, COALESCE(MIN(score), 0) AS bottom "
             + "FROM rating WHERE rating.talk_id = t.id) r "
             + "CROSS JOIN LATERAL (SELECT COALESCE(array_agg(speaker_id ORDER BY seq), '{}') AS co "
             + "FROM talk_co_speaker WHERE talk_co_speaker.talk_id = t.id) c";
@@ -36,7 +37,8 @@ public class TalkDao {
         t.submittedOn = Utils.utcDate(millis);
         int count = rs.getInt("cnt");
         t.ratingCount = count;
-        t.averageRating = count == 0 ? null : Utils.averageRating(rs.getLong("total"), count);
+        t.averageRating = count == 0 ? null
+                : Utils.averageRating(rs.getLong("total"), count, rs.getInt("top"), rs.getInt("bottom"));
         for (Object id : (Object[]) rs.getArray("co").getArray()) {
             t.coSpeakerIds.add(((Number) id).longValue());
         }

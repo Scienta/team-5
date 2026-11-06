@@ -41,6 +41,18 @@ class UtilsTest {
         assertEquals(4.5, Utils.roundRating(4.5));
     }
 
+    // Ratings change request: trimmed at 5+ ratings, 2 decimals, ties to the even neighbour
+    @Test
+    void averageRating() {
+        assertEquals(4.25, Utils.averageRating(17, 4, 5, 4));     // 4 ratings: every score counts
+        assertEquals(4.0, Utils.averageRating(18, 5, 5, 1));      // 5 ratings: (18 - 5 - 1) / 3
+        assertEquals(3.12, Utils.averageRating(31, 10, 5, 1));    // 25 / 8 = 3.125 -> 3.12
+        assertEquals(3.38, Utils.averageRating(33, 10, 5, 1));    // 27 / 8 = 3.375 -> 3.38
+        assertEquals(3.33, Utils.averageRating(10, 3, 4, 3));     // 3.333... -> 3.33
+        assertEquals(2.67, Utils.averageRating(8, 3, 3, 2));      // 2.666... -> 2.67
+        assertEquals(5.0, Utils.averageRating(5, 1, 5, 5));
+    }
+
     // Ratings spec: "M/d/yy, h:mm AM" in UTC, no leading zeros, exactly one ordinary space before AM/PM
     @Test
     void usShortIsTheReviewerUiFormatOnAnyJdk() {

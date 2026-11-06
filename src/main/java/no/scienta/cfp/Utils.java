@@ -106,11 +106,20 @@ public class Utils {
         return true;
     }
 
+    /** From this many ratings on, the average leaves out one highest and one lowest score (ratings change request). */
+    public static final int TRIM_FROM = 5;
+
     /**
-     * A talk's average score as the Ratings spec shows it: one decimal, halves rounded up (4.25 -> 4.3).
+     * A talk's average score as the ratings change request shows it: with {@value #TRIM_FROM} or more ratings, one
+     * highest and one lowest score are left out (exactly one of each, even when several reviewers gave it); rounded to
+     * 2 decimals, ties to the even neighbour (3.125 -> 3.12, 3.375 -> 3.38). Exact: BigDecimal division of integers.
      */
-    public static double averageRating(long total, int count) {
-        return BigDecimal.valueOf(total).divide(BigDecimal.valueOf(count), 1, RoundingMode.HALF_UP).doubleValue();
+    public static double averageRating(long total, int count, int highest, int lowest) {
+        if (count >= TRIM_FROM) {
+            total -= highest + lowest;
+            count -= 2;
+        }
+        return BigDecimal.valueOf(total).divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_EVEN).doubleValue();
     }
 
     /**
