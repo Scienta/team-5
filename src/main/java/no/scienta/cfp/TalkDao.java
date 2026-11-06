@@ -33,7 +33,7 @@ public class TalkDao {
         t.speakerId = rs.getLong("speaker_id");
         long millis = rs.getLong("submitted_at");
         t.submittedAt = new Date(millis);
-        t.submittedOn = Utils.toSqlDate(millis);
+        t.submittedOn = Utils.utcDate(millis);
         int count = rs.getInt("cnt");
         t.ratingCount = count;
         t.averageRating = count == 0 ? null : Utils.averageRating(rs.getLong("total"), count);
